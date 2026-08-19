@@ -145,6 +145,19 @@ function permitirEnderecoManual(mensagem) {
   camposEndereco.find((campo) => !campo.value.trim())?.focus();
 }
 
+function limparFormulario(focarPrimeiroCampo = false) {
+  numeroConsultaCep += 1;
+  formulario.reset();
+  formulario.querySelectorAll('[data-erro]').forEach((aviso) => (aviso.textContent = ''));
+  formulario.querySelectorAll('[aria-invalid="true"]').forEach((campo) => campo.removeAttribute('aria-invalid'));
+  formulario.querySelector('[data-aviso-cep]').textContent = 'Informe o CEP para localizar o endereço.';
+  contadorDescricao.textContent = '0/500';
+  alterarEstadoFormulario();
+  prepararEnderecoAutomatico();
+  atualizarTipoPessoa();
+  if (focarPrimeiroCampo) formulario.elements.nome.focus();
+}
+
 async function consultarCep() {
   const cep = somenteNumeros(formulario.elements.cep.value).slice(0, 8);
   const aviso = formulario.querySelector('[data-aviso-cep]');
@@ -258,10 +271,7 @@ async function enviarFormulario(evento) {
     });
     const retorno = await resposta.json();
     if (!resposta.ok) throw Object.assign(new Error(retorno.mensagem), { erros: retorno.erros });
-    formulario.reset();
-    atualizarTipoPessoa();
-    prepararEnderecoAutomatico();
-    contadorDescricao.textContent = '0/500';
+    limparFormulario();
     alterarEstadoFormulario('Solicitação enviada. Um contador entrará em contato.', 'sucesso');
   } catch (erro) {
     Object.entries(erro.erros || {}).forEach(([campo, mensagem]) => informarErro(campo, mensagem));
@@ -292,6 +302,7 @@ modalContato.addEventListener('click', (evento) => {
 });
 modalContato.addEventListener('close', () => document.body.classList.remove('modal-aberto'));
 formulario.addEventListener('submit', enviarFormulario);
+document.querySelector('#limpar-formulario').addEventListener('click', () => limparFormulario(true));
 formulario.elements.documento.addEventListener('input', (evento) => {
   evento.target.value = formulario.elements.tipoPessoa.value === 'PJ' ? formatarCnpj(evento.target.value) : formatarCpf(evento.target.value);
 });
@@ -348,7 +359,9 @@ document.addEventListener('keydown', (evento) => {
 });
 
 window.addEventListener('scroll', () => document.querySelector('#cabecalho').classList.toggle('com-sombra', window.scrollY > 12), { passive: true });
+window.addEventListener('pageshow', (evento) => {
+  if (evento.persisted) limparFormulario();
+});
 document.querySelector('#ano-atual').textContent = new Date().getFullYear();
 formulario.elements.dataNascimento.max = new Date().toISOString().slice(0, 10);
-prepararEnderecoAutomatico();
-atualizarTipoPessoa();
+limparFormulario();
