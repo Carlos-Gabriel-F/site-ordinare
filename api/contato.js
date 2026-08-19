@@ -119,6 +119,10 @@ function validarDados(corpo) {
   const documento = tipoPessoa === 'PJ' ? limparDocumento(corpo.documento) : somenteNumeros(corpo.documento);
   const telefone = normalizarTelefone(corpo.telefone);
   const cep = somenteNumeros(corpo.cep);
+  const rua = String(corpo.rua || '').trim().slice(0, 150);
+  const cidade = String(corpo.cidade || '').trim().slice(0, 100);
+  const estado = String(corpo.estado || '').trim().toUpperCase();
+  const descricao = String(corpo.descricao || '').trim();
   const erros = {};
 
   if (nome.length < 3) erros.nome = 'Informe seu nome completo.';
@@ -128,8 +132,13 @@ function validarDados(corpo) {
   if (tipoPessoa === 'PF' && !validarData(corpo.dataNascimento)) erros.dataNascimento = 'Informe uma data válida.';
   if (!telefone) erros.telefone = 'Informe um telefone brasileiro válido.';
   if (cep.length !== 8) erros.cep = 'Informe um CEP com oito dígitos.';
+  if (rua.length < 3) erros.rua = 'Informe a rua.';
+  if (cidade.length < 2) erros.cidade = 'Informe a cidade.';
+  if (!/^[A-Z]{2}$/.test(estado)) erros.estado = 'Informe uma UF válida.';
   if (!categoriasPermitidas.has(corpo.categoria)) erros.categoria = 'Selecione uma categoria válida.';
   if (!regimesPermitidos.has(corpo.regimeTributario)) erros.regimeTributario = 'Selecione um regime válido.';
+  if (!descricao) erros.descricao = 'Descreva brevemente sua solicitação.';
+  if (descricao.length > 500) erros.descricao = 'Use no máximo 500 caracteres.';
   if (corpo.privacidadeAceita !== true) erros.privacidadeAceita = 'O aceite é obrigatório.';
 
   return {
@@ -141,8 +150,12 @@ function validarDados(corpo) {
       dataNascimento: tipoPessoa === 'PF' ? corpo.dataNascimento : null,
       telefone,
       cep,
+      rua,
+      cidade,
+      estado,
       categoria: corpo.categoria,
       regimeTributario: corpo.regimeTributario,
+      descricao: descricao.slice(0, 500),
     },
   };
 }
@@ -155,7 +168,9 @@ async function consultarEndereco(cep) {
     const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { signal: controle.signal });
     const endereco = await resposta.json();
     if (!resposta.ok || endereco.erro) return null;
-    return { cidade: endereco.localidade, estado: endereco.uf };
+    return { rua: endereco.logradouro, cidade: endereco.localidade, estado: endereco.uf };
+  } catch {
+    return null;
   } finally {
     clearTimeout(limite);
   }
@@ -171,7 +186,7 @@ async function enviarParaWhatsapp(dados) {
 
   if (![versaoApi, idTelefone, tokenAcesso, numeroDestino, nomeModelo].every(Boolean)) return false;
 
-  // O modelo aprovado na Meta deve possuir dez parâmetros de texto, nesta mesma ordem.
+  // O modelo aprovado na Meta deve possuir doze parâmetros de texto, nesta mesma ordem.
   const valores = [
     dados.nome,
     dados.tipoPessoa,
@@ -179,10 +194,12 @@ async function enviarParaWhatsapp(dados) {
     dados.dataNascimento || 'Não se aplica',
     dados.telefone,
     dados.cep,
+    dados.rua,
     dados.cidade,
     dados.estado,
     dados.categoria,
     dados.regimeTributario,
+    dados.descricao,
   ];
   const resposta = await fetch(`https://graph.facebook.com/${versaoApi}/${idTelefone}/messages`, {
     method: 'POST',
@@ -215,11 +232,13 @@ module.exports = async function receberContato(requisicao, resposta) {
     const { erros, dados } = validarDados(corpo);
     if (Object.keys(erros).length) return responder(resposta, 422, { mensagem: 'Revise os dados enviados.', erros });
 
-    // Cidade e estado são obtidos novamente no servidor para não confiar no navegador.
+    // Quando disponível, o ViaCEP prevalece; campos ausentes continuam com o preenchimento manual.
     const endereco = await consultarEndereco(dados.cep);
-    if (!endereco) return responder(resposta, 422, { mensagem: 'Não foi possível validar o CEP.', erros: { cep: 'CEP inválido.' } });
-
-    Object.assign(dados, endereco);
+    if (endereco) {
+      dados.rua = endereco.rua || dados.rua;
+      dados.cidade = endereco.cidade || dados.cidade;
+      dados.estado = endereco.estado || dados.estado;
+    }
     const configurado = [
       process.env.WHATSAPP_VERSAO_API,
       process.env.WHATSAPP_ID_TELEFONE,

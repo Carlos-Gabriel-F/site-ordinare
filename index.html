@@ -68,7 +68,7 @@
         </nav>
 
         <button class="botao botao-destaque botao-contato-cabecalho" type="button" data-abrir-contato>
-          Fale com um contador
+          <img class="icone-whatsapp" src="./icone-whatsapp.svg" alt="" /> Fale com um contador
         </button>
         <button
           class="botao-menu-mobile"
@@ -103,7 +103,7 @@
         <a href="#diferenciais">Por que a Ordinare</a>
         <a href="#como-funciona">Como funciona</a>
         <button class="botao botao-destaque" type="button" data-abrir-contato>
-          Fale com um contador
+          <img class="icone-whatsapp" src="./icone-whatsapp.svg" alt="" /> Fale com um contador
         </button>
       </nav>
     </header>
@@ -122,7 +122,7 @@
             </p>
             <div class="acoes-iniciais">
               <button class="botao botao-destaque" type="button" data-abrir-contato>
-                Fale com um contador <span aria-hidden="true">↗</span>
+                <img class="icone-whatsapp" src="./icone-whatsapp.svg" alt="" /> Fale com um contador
               </button>
               <a class="botao botao-claro" href="#servicos">Conheça nossos serviços</a>
             </div>
@@ -206,7 +206,7 @@
 
       <section class="secao como-funciona" id="como-funciona" aria-labelledby="titulo-como-funciona">
         <div class="limite grade-como-funciona">
-          <div><p class="chamada chamada-clara"><span></span> Simples desde o início</p><h2 id="titulo-como-funciona">Uma parceria que começa entendendo você.</h2><p>Entendemos o momento da empresa e indicamos o caminho contábil adequado.</p><button class="botao botao-branco" type="button" data-abrir-contato>Quero conversar ↗</button></div>
+          <div><p class="chamada chamada-clara"><span></span> Simples desde o início</p><h2 id="titulo-como-funciona">Uma parceria que começa entendendo você.</h2><p>Entendemos o momento da empresa e indicamos o caminho contábil adequado.</p><button class="botao botao-destaque" type="button" data-abrir-contato><img class="icone-whatsapp" src="./icone-whatsapp.svg" alt="" /> Quero conversar</button></div>
           <ol><li><span>01</span><div><h3>Conte sobre o negócio</h3><p>Compartilhe seu momento e principal necessidade.</p></div></li><li><span>02</span><div><h3>Receba uma orientação</h3><p>Um contador organiza os próximos passos.</p></div></li><li><span>03</span><div><h3>Avance com clareza</h3><p>Escolha a solução e tenha uma rotina mais simples.</p></div></li></ol>
         </div>
       </section>
@@ -232,7 +232,7 @@
       </section>
 
       <section class="secao chamada-final">
-        <div class="limite"><div><p class="chamada chamada-clara"><span></span> Seu próximo passo pode ser mais simples</p><h2>Vamos colocar sua contabilidade em ordem?</h2></div><button class="botao botao-branco" type="button" data-abrir-contato>Fale com a Ordinare ↗</button></div>
+        <div class="limite"><div><p class="chamada chamada-clara"><span></span> Seu próximo passo pode ser mais simples</p><h2>Vamos colocar sua contabilidade em ordem?</h2></div><button class="botao botao-destaque" type="button" data-abrir-contato><img class="icone-whatsapp" src="./icone-whatsapp.svg" alt="" /> Fale com a Ordinare</button></div>
       </section>
     </main>
 
@@ -253,14 +253,17 @@
         <div class="campo"><label for="documento" id="rotulo-documento">CPF</label><input id="documento" name="documento" type="text" inputmode="numeric" maxlength="18" required /><small data-erro="documento"></small></div>
         <div class="campo" id="campo-nascimento"><label for="dataNascimento">Data de nascimento</label><input id="dataNascimento" name="dataNascimento" type="date" required /><small data-erro="dataNascimento"></small></div>
         <div class="campo campo-inteiro"><label for="telefone">Número de telefone</label><input id="telefone" name="telefone" type="tel" inputmode="tel" autocomplete="tel" maxlength="16" placeholder="(11) 99999-9999" required /><small data-erro="telefone"></small></div>
-        <div class="campo"><label for="cep">CEP</label><input id="cep" name="cep" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="00000-000" required /><small data-aviso-cep>Informe o CEP para localizar cidade e estado.</small><small data-erro="cep"></small></div>
-        <div class="campo"><label for="cidade">Cidade</label><input id="cidade" name="cidade" type="text" readonly required /><small data-erro="cidade"></small></div>
-        <div class="campo"><label for="estado">Estado</label><input id="estado" name="estado" type="text" readonly required /><small data-erro="estado"></small></div>
+        <div class="campo campo-inteiro"><label for="cep">CEP</label><input id="cep" name="cep" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="00000-000" required /><small data-aviso-cep>Informe o CEP para localizar o endereço.</small><small data-erro="cep"></small></div>
+        <p class="aviso-endereco campo-inteiro" id="aviso-endereco" role="status" hidden>Não foi possível encontrar o endereço. Preencha os campos abaixo.</p>
+        <div class="campo campo-inteiro"><label for="rua">Rua</label><input id="rua" name="rua" type="text" autocomplete="street-address" maxlength="150" readonly required data-endereco /><small data-erro="rua"></small></div>
+        <div class="campo"><label for="cidade">Cidade</label><input id="cidade" name="cidade" type="text" maxlength="100" readonly required data-endereco /><small data-erro="cidade"></small></div>
+        <div class="campo"><label for="estado">Estado</label><input id="estado" name="estado" type="text" maxlength="2" readonly required data-endereco /><small data-erro="estado"></small></div>
         <div class="campo"><label for="categoria">Categoria</label><select id="categoria" name="categoria" required><option value="">Selecione</option><optgroup label="Serviços"><option value="abertura">Abertura de empresa</option><option value="consultoria-financeira">Consultoria financeira</option><option value="contabilidade-mensal">Contabilidade mensal</option><option value="bpo-financeiro">BPO financeiro</option><option value="folha-pagamento">Folha de pagamento</option><option value="consultoria-tributaria">Consultoria tributária</option></optgroup><optgroup label="Conteúdo e Ajuda"><option value="emissao-nf">Emissão de nota fiscal</option><option value="reducao-impostos">Redução de impostos</option><option value="mei">MEI</option><option value="simples-nacional">Simples Nacional</option><option value="lucro-presumido">Lucro Presumido</option><option value="lucro-real">Lucro Real</option></optgroup></select><small data-erro="categoria"></small></div>
         <div class="campo campo-inteiro"><label for="regimeTributario">Regime tributário atual</label><select id="regimeTributario" name="regimeTributario" required><option value="">Selecione</option><option value="mei">MEI</option><option value="simples-nacional">Simples Nacional</option><option value="lucro-presumido">Lucro Presumido</option><option value="lucro-real">Lucro Real</option><option value="nao-sei">Não sei / Quero orientação</option></select><small data-erro="regimeTributario"></small></div>
+        <div class="campo campo-inteiro"><label class="rotulo-com-contador" for="descricao"><span>Descrição da solicitação</span><span id="contador-descricao">0/500</span></label><textarea id="descricao" name="descricao" rows="5" maxlength="500" placeholder="Conte brevemente o que você precisa." required></textarea><small data-erro="descricao"></small></div>
         <div class="campo campo-inteiro aceite"><input id="privacidadeAceita" name="privacidadeAceita" type="checkbox" required /><label for="privacidadeAceita">Li o <a href="#privacidade">aviso de privacidade</a> e autorizo o uso dos dados para este atendimento.</label><small data-erro="privacidadeAceita"></small></div>
         <p class="estado-formulario" id="estado-formulario" role="status" aria-live="polite"></p>
-        <button class="botao botao-destaque campo-inteiro" type="submit">Concluir e enviar ↗</button>
+        <button class="botao botao-destaque campo-inteiro" type="submit"><img class="icone-whatsapp" src="./icone-whatsapp.svg" alt="" /> Enviar pelo WhatsApp</button>
       </form>
     </dialog>
 

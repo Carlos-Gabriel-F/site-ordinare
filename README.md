@@ -8,6 +8,7 @@ Site institucional estático da Ordinare, feito com HTML, CSS e JavaScript puro.
 ├── index.html       # conteúdo da página
 ├── estilos.css      # identidade visual e responsividade
 ├── principal.js     # menu, modal, máscaras, ViaCEP e formulário
+├── icone-whatsapp.svg
 ├── api/
 │   └── contato.js   # validação final e envio seguro ao WhatsApp
 ├── og.png           # imagem de compartilhamento
@@ -22,7 +23,7 @@ O arquivo `api/contato.js` é uma função serverless compatível com o padrão 
 
 Configure no ambiente do servidor as variáveis descritas em `.env.example`. Elas não podem ser colocadas no `principal.js`, no HTML ou receber qualquer prefixo que as publique no navegador.
 
-O modelo aprovado na Meta deve possuir dez parâmetros de texto, nesta ordem: nome, tipo de pessoa, documento, nascimento, telefone, CEP, cidade, estado, categoria e regime tributário.
+O modelo aprovado na Meta deve possuir doze parâmetros de texto, nesta ordem: nome, tipo de pessoa, documento, nascimento, telefone, CEP, rua, cidade, estado, categoria, regime tributário e descrição da solicitação.
 
 Sem as credenciais, o formulário responde que o atendimento ainda não foi configurado. Isso evita incluir tokens fictícios ou expor segredos no frontend.
 

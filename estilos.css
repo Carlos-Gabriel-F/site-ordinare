@@ -2,17 +2,20 @@
   --azul: #0c243c;
   --azul-escuro: #071a2c;
   --azul-medio: #1d4667;
-  --verde: #0f7558;
-  --verde-escuro: #0b684e;
-  --verde-claro: #d8f3e9;
-  --fundo: #f7f8f5;
-  --branco: #ffffff;
+  --laranja: #d66a18;
+  --laranja-escuro: #ad4c0a;
+  --laranja-claro: #f9e5d2;
+  --whatsapp: #128c62;
+  --whatsapp-escuro: #0b704d;
+  --fundo: #f1efe9;
+  --branco: #fbfaf7;
   --texto: #24313c;
   --texto-suave: #60707d;
-  --borda: #dce4df;
+  --borda: #d9d6ce;
   --erro: #a63c42;
   --raio: 24px;
   --sombra: 0 22px 60px rgb(12 36 60 / 13%);
+  --sombra-menu: 0 28px 75px rgb(7 26 44 / 24%), 0 8px 24px rgb(7 26 44 / 12%);
   --limite: 1180px;
 }
 
@@ -31,7 +34,7 @@ body {
   margin: 0;
   color: var(--texto);
   background: var(--fundo);
-  font-family: Manrope, Inter, "Segoe UI", Arial, sans-serif;
+  font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.65;
 }
 
@@ -42,7 +45,8 @@ body.menu-aberto {
 
 button,
 input,
-select {
+select,
+textarea {
   color: inherit;
   font: inherit;
 }
@@ -68,18 +72,19 @@ h1,
 h2,
 h3 {
   color: var(--azul);
-  letter-spacing: -0.04em;
-  line-height: 1.08;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.13;
 }
 
 h1 {
   margin-bottom: 26px;
-  font-size: clamp(2.8rem, 6vw, 5.5rem);
+  font-size: clamp(2.65rem, 5.4vw, 4.9rem);
 }
 
 h2 {
   margin-bottom: 20px;
-  font-size: clamp(2.1rem, 4vw, 3.8rem);
+  font-size: clamp(2rem, 3.6vw, 3.35rem);
 }
 
 h3 {
@@ -87,7 +92,7 @@ h3 {
 }
 
 :focus-visible {
-  outline: 3px solid #65d1ad;
+  outline: 3px solid #e58b48;
   outline-offset: 3px;
 }
 
@@ -125,9 +130,9 @@ h3 {
   gap: 10px;
   align-items: center;
   margin-bottom: 18px;
-  color: var(--verde-escuro);
+  color: var(--laranja-escuro);
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
@@ -151,7 +156,7 @@ h3 {
   padding: 13px 22px;
   border: 1px solid transparent;
   border-radius: 999px;
-  font-weight: 750;
+  font-weight: 650;
   transition: 0.25s ease;
 }
 
@@ -161,12 +166,18 @@ h3 {
 
 .botao-destaque {
   color: var(--branco);
-  background: var(--verde);
-  box-shadow: 0 14px 30px rgb(15 117 88 / 25%);
+  background: var(--whatsapp);
+  box-shadow: 0 14px 30px rgb(18 140 98 / 25%);
 }
 
 .botao-destaque:hover {
-  background: var(--verde-escuro);
+  background: var(--whatsapp-escuro);
+}
+
+.icone-whatsapp {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
 }
 
 .botao-claro {
@@ -187,7 +198,7 @@ h3 {
   width: 100%;
   height: 84px;
   border-bottom: 1px solid rgb(12 36 60 / 8%);
-  background: rgb(247 248 245 / 92%);
+  background: rgb(241 239 233 / 94%);
   backdrop-filter: blur(18px);
   transition: box-shadow 0.25s ease;
 }
@@ -209,8 +220,8 @@ ode-logotipo {
   align-items: center;
   color: var(--azul);
   font-size: 1.35rem;
-  font-weight: 850;
-  letter-spacing: -0.05em;
+  font-weight: 700;
+  letter-spacing: -0.035em;
 }
 
 ode-logotipo > span {
@@ -229,7 +240,7 @@ ode-logotipo > span::after {
   bottom: -4px;
   border: 2px solid var(--fundo);
   border-radius: 50%;
-  background: var(--verde);
+  background: var(--laranja);
   content: "";
 }
 
@@ -249,14 +260,14 @@ ode-logotipo > span::after {
   color: var(--azul-medio);
   background: transparent;
   font-size: 0.9rem;
-  font-weight: 750;
+  font-weight: 650;
 }
 
 .menu-desktop > a:hover,
 .botao-menu:hover,
 .botao-menu[aria-expanded="true"] {
-  color: var(--verde-escuro);
-  background: #eaf8f3;
+  color: var(--laranja-escuro);
+  background: var(--laranja-claro);
 }
 
 .item-menu {
@@ -274,7 +285,7 @@ ode-logotipo > span::after {
   border: 1px solid var(--borda);
   border-radius: var(--raio);
   background: var(--branco);
-  box-shadow: var(--sombra);
+  box-shadow: var(--sombra-menu);
   transform: translate(-50%, -8px);
   transition: 0.2s ease;
 }
@@ -319,12 +330,12 @@ ode-logotipo > span::after {
   padding: 12px 14px;
   border-radius: 10px;
   font-size: 0.88rem;
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .submenu a:hover {
-  color: var(--verde-escuro);
-  background: #eaf8f3;
+  color: var(--laranja-escuro);
+  background: var(--laranja-claro);
 }
 
 .botao-contato-cabecalho {
@@ -342,8 +353,8 @@ ode-logotipo > span::after {
   padding-top: 174px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 78% 28%, rgb(101 209 173 / 20%), transparent 31%),
-    linear-gradient(140deg, #f9fbf8, #edf5f0);
+    radial-gradient(circle at 78% 28%, rgb(214 106 24 / 16%), transparent 31%),
+    linear-gradient(140deg, #f8f6f1, #e9edf0);
 }
 
 .grade-inicial {
@@ -354,7 +365,7 @@ ode-logotipo > span::after {
 }
 
 .destaque-inicial h1 em {
-  color: var(--verde);
+  color: var(--laranja);
   font-style: normal;
 }
 
@@ -379,7 +390,7 @@ ode-logotipo > span::after {
   color: var(--azul-medio);
   list-style: none;
   font-size: 0.86rem;
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .visual-inicial {
@@ -395,8 +406,8 @@ ode-logotipo > span::after {
   left: 55px;
   border: 1px solid rgb(12 36 60 / 10%);
   border-radius: 50%;
-  background: linear-gradient(140deg, var(--verde-claro), rgb(15 117 88 / 24%));
-  box-shadow: 0 0 0 35px rgb(255 255 255 / 15%), 0 0 0 70px rgb(12 36 60 / 4%);
+  background: linear-gradient(140deg, var(--laranja-claro), rgb(214 106 24 / 20%));
+  box-shadow: 0 0 0 35px rgb(251 250 247 / 20%), 0 0 0 70px rgb(12 36 60 / 4%);
 }
 
 ode-painel-resumo {
@@ -409,7 +420,7 @@ ode-painel-resumo {
   padding: 28px;
   border: 1px solid rgb(255 255 255 / 60%);
   border-radius: 32px;
-  background: rgb(255 255 255 / 91%);
+  background: rgb(251 250 247 / 94%);
   box-shadow: 0 36px 90px rgb(7 26 44 / 20%);
   transform: rotate(-2deg);
 }
@@ -423,10 +434,10 @@ ode-painel-resumo > small {
 ode-painel-resumo > div span {
   padding: 4px 9px;
   border-radius: 999px;
-  color: var(--verde-escuro);
-  background: var(--verde-claro);
+  color: var(--laranja-escuro);
+  background: var(--laranja-claro);
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 ode-painel-resumo h2 {
@@ -448,7 +459,7 @@ ode-painel-resumo i::after {
   width: var(--progresso);
   height: 100%;
   border-radius: inherit;
-  background: var(--verde);
+  background: var(--laranja);
   content: "";
 }
 
@@ -466,7 +477,7 @@ ode-painel-resumo > small strong {
   z-index: 2;
   padding: 14px 18px;
   border-radius: 16px;
-  background: rgb(255 255 255 / 92%);
+  background: rgb(251 250 247 / 94%);
   box-shadow: var(--sombra);
   font-size: 0.75rem;
   line-height: 1.35;
@@ -475,7 +486,7 @@ ode-painel-resumo > small strong {
 .selo-flutuante span {
   float: left;
   margin: 2px 10px 0 0;
-  color: var(--verde-escuro);
+  color: var(--laranja-escuro);
   font-size: 1.2rem;
 }
 
@@ -508,8 +519,8 @@ ode-painel-resumo > small strong {
 
 .faixa-valores p {
   margin: 0;
-  color: var(--verde-claro);
-  font-weight: 700;
+  color: var(--laranja-claro);
+  font-weight: 650;
 }
 
 .faixa-valores ul {
@@ -518,7 +529,7 @@ ode-painel-resumo > small strong {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-weight: 750;
+  font-weight: 650;
 }
 
 .cabecalho-secao {
@@ -575,10 +586,10 @@ ode-cartao-servico > span {
   margin-bottom: auto;
   border-radius: 16px;
   place-items: center;
-  color: var(--verde-escuro);
-  background: #eaf8f3;
+  color: var(--laranja-escuro);
+  background: var(--laranja-claro);
   font-size: 1.3rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 ode-cartao-diferencial h3,
@@ -607,9 +618,9 @@ ode-cartao-servico button {
   align-self: flex-start;
   padding: 0;
   border: 0;
-  color: var(--verde-escuro);
+  color: var(--laranja-escuro);
   background: transparent;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .como-funciona {
@@ -648,12 +659,12 @@ ode-cartao-servico button {
   display: grid;
   width: 50px;
   height: 50px;
-  border: 1px solid #65d1ad;
+  border: 1px solid #e58b48;
   border-radius: 50%;
   place-items: center;
-  color: #a5eed3;
+  color: #f2b27f;
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .como-funciona li p {
@@ -675,7 +686,7 @@ ode-cartao-servico button {
 .lista-perguntas summary {
   padding: 24px 0;
   color: var(--azul);
-  font-weight: 800;
+  font-weight: 650;
   cursor: pointer;
 }
 
@@ -697,7 +708,7 @@ ode-cartao-servico button {
   padding: 42px;
   border: 1px solid var(--borda);
   border-radius: 32px;
-  background: #eaf8f3;
+  background: var(--laranja-claro);
 }
 
 .aviso-privacidade > span {
@@ -707,7 +718,7 @@ ode-cartao-servico button {
   border-radius: 16px;
   place-items: center;
   color: var(--branco);
-  background: var(--verde);
+  background: var(--laranja);
 }
 
 .aviso-privacidade h2 {
@@ -731,7 +742,7 @@ ode-cartao-servico button {
   justify-content: space-between;
   padding: clamp(42px, 7vw, 76px);
   border-radius: 32px;
-  background: var(--verde);
+  background: var(--azul);
 }
 
 .chamada-final h2 {
@@ -853,17 +864,23 @@ ode-cartao-servico button {
 .campo legend {
   color: var(--azul);
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .campo input,
-.campo select {
+.campo select,
+.campo textarea {
   width: 100%;
   min-height: 49px;
   padding: 11px 13px;
-  border: 1px solid #cdd8d2;
+  border: 1px solid #cbc8c1;
   border-radius: 10px;
   background: var(--branco);
+}
+
+.campo textarea {
+  min-height: 120px;
+  resize: vertical;
 }
 
 .campo input[readonly] {
@@ -871,8 +888,10 @@ ode-cartao-servico button {
 }
 
 .campo input[aria-invalid="true"],
-.campo select[aria-invalid="true"] {
+.campo select[aria-invalid="true"],
+.campo textarea[aria-invalid="true"] {
   border-color: var(--erro);
+  box-shadow: 0 0 0 2px rgb(166 60 66 / 9%);
 }
 
 .campo small {
@@ -883,6 +902,30 @@ ode-cartao-servico button {
 
 .campo small[data-aviso-cep] {
   color: var(--texto-suave);
+}
+
+.rotulo-com-contador {
+  display: flex;
+  justify-content: space-between;
+}
+
+.rotulo-com-contador > span:last-child {
+  color: var(--texto-suave);
+  font-weight: 500;
+}
+
+.aviso-endereco {
+  margin: -2px 0 0;
+  padding: 9px 12px;
+  border-left: 3px solid var(--erro);
+  border-radius: 6px;
+  color: #7e282e;
+  background: #f8e9e8;
+  font-size: 0.74rem;
+}
+
+.aviso-endereco[hidden] {
+  display: none;
 }
 
 .seletor-pessoa {
@@ -926,7 +969,7 @@ ode-cartao-servico button {
 .aceite input {
   min-height: auto;
   margin-top: 4px;
-  accent-color: var(--verde);
+  accent-color: var(--laranja);
 }
 
 .aceite label {
@@ -955,8 +998,8 @@ ode-cartao-servico button {
 }
 
 .estado-formulario.sucesso {
-  color: var(--verde-escuro);
-  background: #eaf8f3;
+  color: var(--azul-medio);
+  background: #e5ebef;
 }
 
 @media (max-width: 980px) {
@@ -1011,7 +1054,7 @@ ode-cartao-servico button {
     padding: 16px 4px;
     border-bottom: 1px solid var(--borda);
     color: var(--azul);
-    font-weight: 800;
+    font-weight: 650;
   }
 
   .menu-mobile details a {

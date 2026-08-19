@@ -2,6 +2,10 @@ const modalContato = document.querySelector('#modal-contato');
 const formulario = document.querySelector('#formulario-contato');
 const menuMobile = document.querySelector('#menu-mobile');
 const botaoMenuMobile = document.querySelector('.botao-menu-mobile');
+const avisoEndereco = document.querySelector('#aviso-endereco');
+const camposEndereco = [...formulario.querySelectorAll('[data-endereco]')];
+const contadorDescricao = document.querySelector('#contador-descricao');
+let numeroConsultaCep = 0;
 const categoriasValidas = [...document.querySelector('#categoria').options]
   .map((opcao) => opcao.value)
   .filter(Boolean);
@@ -123,16 +127,35 @@ function atualizarTipoPessoa() {
   informarErro('dataNascimento');
 }
 
+function prepararEnderecoAutomatico() {
+  avisoEndereco.hidden = true;
+  camposEndereco.forEach((campo) => {
+    campo.readOnly = true;
+    campo.removeAttribute('aria-invalid');
+  });
+}
+
+function permitirEnderecoManual(mensagem) {
+  avisoEndereco.textContent = mensagem;
+  avisoEndereco.hidden = false;
+  camposEndereco.forEach((campo) => {
+    campo.readOnly = false;
+    if (!campo.value.trim()) campo.setAttribute('aria-invalid', 'true');
+  });
+  camposEndereco.find((campo) => !campo.value.trim())?.focus();
+}
+
 async function consultarCep() {
   const cep = somenteNumeros(formulario.elements.cep.value).slice(0, 8);
   const aviso = formulario.querySelector('[data-aviso-cep]');
+  const consultaAtual = ++numeroConsultaCep;
   formulario.elements.cep.value = cep.replace(/^(\d{5})(\d)/, '$1-$2');
-  formulario.elements.cidade.value = '';
-  formulario.elements.estado.value = '';
+  camposEndereco.forEach((campo) => (campo.value = ''));
+  prepararEnderecoAutomatico();
   informarErro('cep');
 
   if (cep.length !== 8) {
-    aviso.textContent = 'Informe o CEP para localizar cidade e estado.';
+    aviso.textContent = 'Informe o CEP para localizar o endereço.';
     return;
   }
 
@@ -144,12 +167,22 @@ async function consultarCep() {
     const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { signal: controle.signal });
     const endereco = await resposta.json();
     if (!resposta.ok || endereco.erro) throw new Error('CEP não encontrado.');
+    if (consultaAtual !== numeroConsultaCep) return;
+    formulario.elements.rua.value = endereco.logradouro || '';
     formulario.elements.cidade.value = endereco.localidade;
     formulario.elements.estado.value = endereco.uf;
-    aviso.textContent = 'Cidade e estado encontrados.';
+    aviso.textContent = 'Endereço localizado automaticamente.';
+    if (camposEndereco.some((campo) => !campo.value.trim())) {
+      permitirEnderecoManual('O endereço foi encontrado parcialmente. Complete os campos destacados.');
+    }
   } catch (erro) {
-    informarErro('cep', erro.name === 'AbortError' ? 'A consulta demorou demais.' : 'Não foi possível localizar o CEP.');
-    aviso.textContent = '';
+    if (consultaAtual !== numeroConsultaCep) return;
+    aviso.textContent = 'Preenchimento manual liberado.';
+    permitirEnderecoManual(
+      erro.name === 'AbortError'
+        ? 'A consulta demorou demais. Preencha o endereço manualmente.'
+        : 'Não foi possível encontrar o endereço. Preencha os campos abaixo.',
+    );
   } finally {
     clearTimeout(limite);
   }
@@ -168,10 +201,13 @@ function validarFormulario() {
   if (!pessoaJuridica && !validarData(dados.get('dataNascimento'))) erros.dataNascimento = 'Informe uma data válida.';
   if (!telefone) erros.telefone = 'Informe um telefone brasileiro válido.';
   if (somenteNumeros(dados.get('cep')).length !== 8) erros.cep = 'Informe um CEP com oito dígitos.';
-  if (!dados.get('cidade')) erros.cidade = 'Consulte um CEP válido.';
-  if (!dados.get('estado')) erros.estado = 'Consulte um CEP válido.';
+  if (String(dados.get('rua')).trim().length < 3) erros.rua = 'Informe a rua.';
+  if (String(dados.get('cidade')).trim().length < 2) erros.cidade = 'Informe a cidade.';
+  if (!/^[A-Za-z]{2}$/.test(String(dados.get('estado')).trim())) erros.estado = 'Informe a UF com duas letras.';
   if (!categoriasValidas.includes(dados.get('categoria'))) erros.categoria = 'Selecione uma categoria.';
   if (!dados.get('regimeTributario')) erros.regimeTributario = 'Selecione o regime tributário.';
+  if (!String(dados.get('descricao')).trim()) erros.descricao = 'Descreva brevemente sua solicitação.';
+  if (String(dados.get('descricao')).trim().length > 500) erros.descricao = 'Use no máximo 500 caracteres.';
   if (!dados.get('privacidadeAceita')) erros.privacidadeAceita = 'O aceite é obrigatório.';
 
   return {
@@ -183,10 +219,12 @@ function validarFormulario() {
       dataNascimento: pessoaJuridica ? null : dados.get('dataNascimento'),
       telefone,
       cep: somenteNumeros(dados.get('cep')),
-      cidade: dados.get('cidade'),
-      estado: dados.get('estado'),
+      rua: String(dados.get('rua')).trim(),
+      cidade: String(dados.get('cidade')).trim(),
+      estado: String(dados.get('estado')).trim().toUpperCase(),
       categoria: dados.get('categoria'),
       regimeTributario: dados.get('regimeTributario'),
+      descricao: String(dados.get('descricao')).trim(),
       privacidadeAceita: true,
     },
   };
@@ -207,6 +245,7 @@ async function enviarFormulario(evento) {
   }
 
   const botao = formulario.querySelector('[type="submit"]');
+  const conteudoOriginalBotao = botao.innerHTML;
   botao.disabled = true;
   botao.textContent = 'Enviando…';
 
@@ -221,13 +260,15 @@ async function enviarFormulario(evento) {
     if (!resposta.ok) throw Object.assign(new Error(retorno.mensagem), { erros: retorno.erros });
     formulario.reset();
     atualizarTipoPessoa();
+    prepararEnderecoAutomatico();
+    contadorDescricao.textContent = '0/500';
     alterarEstadoFormulario('Solicitação enviada. Um contador entrará em contato.', 'sucesso');
   } catch (erro) {
     Object.entries(erro.erros || {}).forEach(([campo, mensagem]) => informarErro(campo, mensagem));
     alterarEstadoFormulario(erro.message || 'Não foi possível enviar agora. Tente novamente.', 'erro');
   } finally {
     botao.disabled = false;
-    botao.textContent = 'Concluir e enviar ↗';
+    botao.innerHTML = conteudoOriginalBotao;
   }
 }
 
@@ -256,6 +297,15 @@ formulario.elements.documento.addEventListener('input', (evento) => {
 });
 formulario.elements.telefone.addEventListener('input', (evento) => (evento.target.value = formatarTelefone(evento.target.value)));
 formulario.elements.cep.addEventListener('input', consultarCep);
+formulario.elements.descricao.addEventListener('input', (evento) => {
+  contadorDescricao.textContent = `${evento.target.value.length}/500`;
+});
+camposEndereco.forEach((campo) => {
+  campo.addEventListener('input', () => {
+    if (campo === formulario.elements.estado) campo.value = campo.value.toUpperCase().replace(/[^A-Z]/g, '');
+    if (campo.value.trim()) informarErro(campo.name);
+  });
+});
 formulario.querySelectorAll('[name="tipoPessoa"]').forEach((campo) => campo.addEventListener('change', atualizarTipoPessoa));
 
 document.querySelectorAll('.botao-menu').forEach((botao) => {
@@ -300,4 +350,5 @@ document.addEventListener('keydown', (evento) => {
 window.addEventListener('scroll', () => document.querySelector('#cabecalho').classList.toggle('com-sombra', window.scrollY > 12), { passive: true });
 document.querySelector('#ano-atual').textContent = new Date().getFullYear();
 formulario.elements.dataNascimento.max = new Date().toISOString().slice(0, 10);
+prepararEnderecoAutomatico();
 atualizarTipoPessoa();
