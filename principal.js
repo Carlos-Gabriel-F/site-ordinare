@@ -5,6 +5,7 @@ const botaoMenuMobile = document.querySelector('.botao-menu-mobile');
 const avisoEndereco = document.querySelector('#aviso-endereco');
 const camposEndereco = [...formulario.querySelectorAll('[data-endereco]')];
 const contadorDescricao = document.querySelector('#contador-descricao');
+const botaoEnviar = formulario.querySelector('[type="submit"]');
 let numeroConsultaCep = 0;
 const categoriasValidas = [...document.querySelector('#categoria').options]
   .map((opcao) => opcao.value)
@@ -155,6 +156,7 @@ function limparFormulario(focarPrimeiroCampo = false) {
   alterarEstadoFormulario();
   prepararEnderecoAutomatico();
   atualizarTipoPessoa();
+  atualizarEstadoBotaoEnviar();
   if (focarPrimeiroCampo) formulario.elements.nome.focus();
 }
 
@@ -198,6 +200,7 @@ async function consultarCep() {
     );
   } finally {
     clearTimeout(limite);
+    atualizarEstadoBotaoEnviar();
   }
 }
 
@@ -243,6 +246,11 @@ function validarFormulario() {
   };
 }
 
+function atualizarEstadoBotaoEnviar() {
+  const { erros } = validarFormulario();
+  botaoEnviar.disabled = Object.keys(erros).length > 0;
+}
+
 async function enviarFormulario(evento) {
   evento.preventDefault();
   formulario.querySelectorAll('[data-erro]').forEach((aviso) => (aviso.textContent = ''));
@@ -257,10 +265,9 @@ async function enviarFormulario(evento) {
     return;
   }
 
-  const botao = formulario.querySelector('[type="submit"]');
-  const conteudoOriginalBotao = botao.innerHTML;
-  botao.disabled = true;
-  botao.textContent = 'Enviando…';
+  const conteudoOriginalBotao = botaoEnviar.innerHTML;
+  botaoEnviar.disabled = true;
+  botaoEnviar.textContent = 'Enviando…';
 
   try {
     // O navegador chama somente nossa API; a credencial do WhatsApp nunca fica no site.
@@ -281,13 +288,14 @@ async function enviarFormulario(evento) {
     Object.entries(erro.erros || {}).forEach(([campo, mensagem]) => informarErro(campo, mensagem));
     alterarEstadoFormulario(erro.message || 'Não foi possível enviar agora. Tente novamente.', 'erro');
   } finally {
-    botao.disabled = false;
-    botao.innerHTML = conteudoOriginalBotao;
+    botaoEnviar.innerHTML = conteudoOriginalBotao;
+    atualizarEstadoBotaoEnviar();
   }
 }
 
 function abrirModal(categoria = '') {
   if (categoriasValidas.includes(categoria)) formulario.elements.categoria.value = categoria;
+  atualizarEstadoBotaoEnviar();
   modalContato.showModal();
   document.body.classList.add('modal-aberto');
   formulario.elements.nome.focus();
@@ -306,6 +314,8 @@ modalContato.addEventListener('click', (evento) => {
 });
 modalContato.addEventListener('close', () => document.body.classList.remove('modal-aberto'));
 formulario.addEventListener('submit', enviarFormulario);
+formulario.addEventListener('input', atualizarEstadoBotaoEnviar);
+formulario.addEventListener('change', atualizarEstadoBotaoEnviar);
 document.querySelector('#limpar-formulario').addEventListener('click', () => limparFormulario(true));
 formulario.elements.documento.addEventListener('input', (evento) => {
   evento.target.value = formulario.elements.tipoPessoa.value === 'PJ' ? formatarCnpj(evento.target.value) : formatarCpf(evento.target.value);

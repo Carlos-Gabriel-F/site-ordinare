@@ -1,7 +1,6 @@
 const { randomUUID } = require('node:crypto');
 const {
   ErroLimiteAntiFlood,
-  ErroServicoAntiFlood,
   servicoAntiFlood,
 } = require('./ServicoAntiFlood');
 
@@ -163,17 +162,40 @@ async function consultarEndereco(cep) {
   }
 }
 
-async function enviarParaWhatsapp(dados) {
-  const versaoApi = process.env.WHATSAPP_VERSAO_API;
-  const idTelefone = process.env.WHATSAPP_ID_TELEFONE;
-  const tokenAcesso = process.env.WHATSAPP_TOKEN_ACESSO;
-  const numeroDestino = process.env.WHATSAPP_NUMERO_DESTINO;
-  const nomeModelo = process.env.WHATSAPP_NOME_MODELO;
-  const idiomaModelo = process.env.WHATSAPP_IDIOMA_MODELO || 'pt_BR';
+function obterConfiguracaoWhatsapp() {
+  return {
+    modoEnvio: process.env.WHATSAPP_MODO_ENVIO || 'teste',
+    versaoApi: process.env.WHATSAPP_VERSAO_API,
+    idTelefone: process.env.WHATSAPP_ID_TELEFONE,
+    tokenAcesso: process.env.WHATSAPP_TOKEN_ACESSO,
+    numeroDestino: process.env.WHATSAPP_NUMERO_DESTINO,
+    nomeModelo: process.env.WHATSAPP_NOME_MODELO,
+    idiomaModelo: process.env.WHATSAPP_IDIOMA_MODELO || 'pt_BR',
+  };
+}
 
-  if (![versaoApi, idTelefone, tokenAcesso, numeroDestino, nomeModelo].every(Boolean)) return false;
+function whatsappConfigurado(configuracao) {
+  const camposComuns = [
+    configuracao.versaoApi,
+    configuracao.idTelefone,
+    configuracao.tokenAcesso,
+    configuracao.numeroDestino,
+  ];
+  const modoValido = ['teste', 'texto', 'modelo'].includes(configuracao.modoEnvio);
+  const modeloValido = configuracao.modoEnvio !== 'modelo' || Boolean(configuracao.nomeModelo);
+  return camposComuns.every(Boolean) && modoValido && modeloValido;
+}
 
-  // O modelo aprovado na Meta deve possuir doze parâmetros de texto, nesta mesma ordem.
+function montarMensagemWhatsapp(dados, configuracao) {
+  if (configuracao.modoEnvio === 'teste') {
+    return {
+      messaging_product: 'whatsapp',
+      to: configuracao.numeroDestino,
+      type: 'template',
+      template: { name: 'hello_world', language: { code: 'en_US' } },
+    };
+  }
+
   const valores = [
     dados.nome,
     dados.tipoPessoa,
@@ -188,21 +210,38 @@ async function enviarParaWhatsapp(dados) {
     dados.regimeTributario,
     dados.descricao,
   ];
-  const resposta = await fetch(`https://graph.facebook.com/${versaoApi}/${idTelefone}/messages`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${tokenAcesso}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+
+  if (configuracao.modoEnvio === 'texto') {
+    const rotulos = ['Nome', 'Tipo', 'Documento', 'Nascimento', 'Telefone', 'CEP', 'Rua', 'Cidade', 'Estado', 'Categoria', 'Regime', 'Solicitação'];
+    return {
       messaging_product: 'whatsapp',
-      to: numeroDestino,
-      type: 'template',
-      template: {
-        name: nomeModelo,
-        language: { code: idiomaModelo },
-        components: [{ type: 'body', parameters: valores.map((text) => ({ type: 'text', text })) }],
-      },
-    }),
+      to: configuracao.numeroDestino,
+      type: 'text',
+      text: { preview_url: false, body: rotulos.map((rotulo, indice) => `*${rotulo}:* ${valores[indice]}`).join('\n') },
+    };
+  }
+
+  // O modelo aprovado na Meta deve possuir doze parâmetros de texto, nesta mesma ordem.
+  return {
+    messaging_product: 'whatsapp',
+    to: configuracao.numeroDestino,
+    type: 'template',
+    template: {
+      name: configuracao.nomeModelo,
+      language: { code: configuracao.idiomaModelo },
+      components: [{ type: 'body', parameters: valores.map((text) => ({ type: 'text', text })) }],
+    },
+  };
+}
+
+async function enviarParaWhatsapp(dados, configuracao) {
+  const resposta = await fetch(`https://graph.facebook.com/${configuracao.versaoApi}/${configuracao.idTelefone}/messages`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${configuracao.tokenAcesso}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(montarMensagemWhatsapp(dados, configuracao)),
   });
 
+  if (!resposta.ok) console.error({ evento: 'falha_whatsapp', status: resposta.status });
   return resposta.ok;
 }
 
@@ -226,19 +265,15 @@ module.exports = async function receberContato(requisicao, resposta) {
       dados.cidade = endereco.cidade || dados.cidade;
       dados.estado = endereco.estado || dados.estado;
     }
-    const configurado = [
-      process.env.WHATSAPP_VERSAO_API,
-      process.env.WHATSAPP_ID_TELEFONE,
-      process.env.WHATSAPP_TOKEN_ACESSO,
-      process.env.WHATSAPP_NUMERO_DESTINO,
-      process.env.WHATSAPP_NOME_MODELO,
-    ].every(Boolean);
-    if (!configurado) return responder(resposta, 503, { mensagem: 'O atendimento ainda não está configurado.' });
+    const configuracaoWhatsapp = obterConfiguracaoWhatsapp();
+    if (!whatsappConfigurado(configuracaoWhatsapp)) {
+      return responder(resposta, 503, { mensagem: 'O atendimento ainda não está configurado.' });
+    }
 
     const reservaAntiFlood = await servicoAntiFlood.ReservarEnvio(dados);
     let enviado = false;
     try {
-      enviado = await enviarParaWhatsapp(dados);
+      enviado = await enviarParaWhatsapp(dados, configuracaoWhatsapp);
     } catch (erro) {
       await servicoAntiFlood.CancelarReserva(reservaAntiFlood);
       throw erro;
@@ -258,9 +293,6 @@ module.exports = async function receberContato(requisicao, resposta) {
         mensagem: erro.message,
         tentarNovamenteEm: erro.tentarNovamenteEm,
       });
-    }
-    if (erro instanceof ErroServicoAntiFlood) {
-      return responder(resposta, 503, { mensagem: 'A proteção de envio está temporariamente indisponível.' });
     }
     console.error({ evento: 'falha_contato', tipo: erro.name });
     return responder(resposta, 500, { mensagem: 'Não foi possível concluir o atendimento.' });

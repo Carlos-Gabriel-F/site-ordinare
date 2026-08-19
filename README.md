@@ -24,7 +24,14 @@ O arquivo `api/contato.js` é uma função serverless compatível com o padrão 
 
 Configure no ambiente do servidor as variáveis descritas em `.env.example`. Elas não podem ser colocadas no `principal.js`, no HTML ou receber qualquer prefixo que as publique no navegador.
 
-O modelo aprovado na Meta deve possuir doze parâmetros de texto, nesta ordem: nome, tipo de pessoa, documento, nascimento, telefone, CEP, rua, cidade, estado, categoria, regime tributário e descrição da solicitação.
+Para o primeiro teste, mantenha `WHATSAPP_MODO_ENVIO=teste`. Esse modo chama o endpoint oficial `/messages` usando o modelo pré-aprovado `hello_world`; basta informar versão da API, identificador do telefone, token e número destinatário.
+
+Depois do teste existem dois modos:
+
+- `texto`: envia os dados formatados quando a conta puder enviar mensagem de texto ao destinatário;
+- `modelo`: usa um modelo aprovado pela Meta com doze parâmetros, na ordem nome, tipo de pessoa, documento, nascimento, telefone, CEP, rua, cidade, estado, categoria, regime tributário e descrição.
+
+No modo `modelo`, configure também `WHATSAPP_NOME_MODELO` e `WHATSAPP_IDIOMA_MODELO`.
 
 Sem as credenciais, o formulário responde que o atendimento ainda não foi configurado. Isso evita incluir tokens fictícios ou expor segredos no frontend.
 
@@ -36,9 +43,9 @@ O `ServicoAntiFlood` aplica três limites no servidor:
 - um envio por CPF/CNPJ e telefone a cada dois minutos, limitado a três em trinta minutos;
 - bloqueio de uma solicitação idêntica por dez minutos.
 
-Os identificadores são armazenados como hashes HMAC; CPF, telefone, IP e descrição não são gravados em texto aberto. Se o envio ao WhatsApp falhar, a reserva do contato é cancelada para permitir uma nova tentativa legítima. As respostas bloqueadas usam HTTP `429` e o cabeçalho `Retry-After`.
+Os identificadores são mantidos em memória como hashes HMAC; CPF, telefone, IP e descrição não são gravados em texto aberto. Se o envio ao WhatsApp falhar, a reserva do contato é cancelada para permitir uma nova tentativa legítima. As respostas bloqueadas usam HTTP `429` e o cabeçalho `Retry-After`.
 
-Para desenvolvimento local, o serviço usa memória. Em produção, configure `LIMITE_REDIS_URL`, `LIMITE_REDIS_TOKEN` e um `LIMITE_SEGREDO_HASH` aleatório com pelo menos 32 caracteres. A API interrompe o envio quando a proteção distribuída estiver ausente ou indisponível em produção.
+Essa proteção não exige banco de dados nem serviço REST e, portanto, não gera custo adicional. Ela funciona por processo: reinícios ou múltiplas instâncias reiniciam e separam os contadores. Quando o volume justificar uma infraestrutura distribuída, o serviço poderá receber outro mecanismo de armazenamento sem alterar o formulário ou o endpoint.
 
 ## Antes da publicação
 

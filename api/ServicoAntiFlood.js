@@ -1,58 +1,4 @@
-const { createHmac, randomUUID } = require('node:crypto');
-
-const scriptLimiteIp = `
-local chave = KEYS[1]
-local agora = tonumber(ARGV[1])
-local janela = tonumber(ARGV[2])
-local limite = tonumber(ARGV[3])
-local membro = ARGV[4]
-redis.call('ZREMRANGEBYSCORE', chave, 0, agora - janela)
-local quantidade = redis.call('ZCARD', chave)
-if quantidade >= limite then
-  local primeiro = redis.call('ZRANGE', chave, 0, 0, 'WITHSCORES')
-  local espera = janela
-  if #primeiro >= 2 then espera = math.max(1000, janela - (agora - tonumber(primeiro[2]))) end
-  return {0, espera}
-end
-redis.call('ZADD', chave, agora, membro)
-redis.call('PEXPIRE', chave, janela)
-return {1, 0}
-`;
-
-const scriptReservaContato = `
-local curta = KEYS[1]
-local longa = KEYS[2]
-local duplicada = KEYS[3]
-local agora = tonumber(ARGV[1])
-local janelaCurta = tonumber(ARGV[2])
-local janelaLonga = tonumber(ARGV[3])
-local janelaDuplicada = tonumber(ARGV[4])
-local membro = ARGV[5]
-redis.call('ZREMRANGEBYSCORE', curta, 0, agora - janelaCurta)
-redis.call('ZREMRANGEBYSCORE', longa, 0, agora - janelaLonga)
-if redis.call('EXISTS', duplicada) == 1 then return {0, redis.call('PTTL', duplicada), 3} end
-if redis.call('ZCARD', curta) >= 1 then
-  local primeiro = redis.call('ZRANGE', curta, 0, 0, 'WITHSCORES')
-  return {0, math.max(1000, janelaCurta - (agora - tonumber(primeiro[2]))), 1}
-end
-if redis.call('ZCARD', longa) >= 3 then
-  local primeiro = redis.call('ZRANGE', longa, 0, 0, 'WITHSCORES')
-  return {0, math.max(1000, janelaLonga - (agora - tonumber(primeiro[2]))), 2}
-end
-redis.call('ZADD', curta, agora, membro)
-redis.call('PEXPIRE', curta, janelaCurta)
-redis.call('ZADD', longa, agora, membro)
-redis.call('PEXPIRE', longa, janelaLonga)
-redis.call('SET', duplicada, membro, 'PX', janelaDuplicada)
-return {1, 0, 0}
-`;
-
-const scriptCancelarReserva = `
-redis.call('ZREM', KEYS[1], ARGV[1])
-redis.call('ZREM', KEYS[2], ARGV[1])
-if redis.call('GET', KEYS[3]) == ARGV[1] then redis.call('DEL', KEYS[3]) end
-return 1
-`;
+const { createHmac, randomBytes, randomUUID } = require('node:crypto');
 
 class ErroLimiteAntiFlood extends Error {
   constructor(mensagem, tentarNovamenteEm) {
@@ -62,27 +8,13 @@ class ErroLimiteAntiFlood extends Error {
   }
 }
 
-class ErroServicoAntiFlood extends Error {
-  constructor() {
-    super('A proteção contra excesso de envios está indisponível.');
-    this.name = 'ErroServicoAntiFlood';
-  }
-}
-
 class ServicoAntiFlood {
   constructor(configuracao = {}) {
-    this.urlRedis = configuracao.urlRedis ?? process.env.LIMITE_REDIS_URL ?? '';
-    this.tokenRedis = configuracao.tokenRedis ?? process.env.LIMITE_REDIS_TOKEN ?? '';
-    this.segredoHash = configuracao.segredoHash ?? process.env.LIMITE_SEGREDO_HASH ?? 'ordinare-local';
-    this.exigirRedis = configuracao.exigirRedis ?? process.env.NODE_ENV === 'production';
-    this.obterAgora = configuracao.obterAgora ?? (() => Date.now());
-    this.janelasMemoria = new Map();
-    this.duplicadosMemoria = new Map();
-
-    const informouRedis = Boolean(this.urlRedis || this.tokenRedis);
-    const segredoSeguro = this.segredoHash.length >= 32;
-    this.usarRedis = Boolean(this.urlRedis && this.tokenRedis && segredoSeguro);
-    this.configuracaoInvalida = (informouRedis && !this.usarRedis) || (this.exigirRedis && !this.usarRedis);
+    this.segredoHash = configuracao.segredoHash || randomBytes(32).toString('hex');
+    this.obterAgora = configuracao.obterAgora || (() => Date.now());
+    this.janelas = new Map();
+    this.duplicados = new Map();
+    this.proximaLimpeza = 0;
   }
 
   GerarHash(valor) {
@@ -95,65 +27,53 @@ class ServicoAntiFlood {
       .trim();
   }
 
-  async ExecutarRedis(script, chaves, argumentos) {
-    if (this.configuracaoInvalida) throw new ErroServicoAntiFlood();
-
-    const controle = new AbortController();
-    const limiteTempo = setTimeout(() => controle.abort(), 2500);
-
-    try {
-      const resposta = await fetch(this.urlRedis.replace(/\/$/, ''), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${this.tokenRedis}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(['EVAL', script, chaves.length, ...chaves, ...argumentos]),
-        signal: controle.signal,
-      });
-      const retorno = await resposta.json();
-      if (!resposta.ok || retorno.error) throw new Error('Falha no armazenamento de limites.');
-      return retorno.result;
-    } catch {
-      throw new ErroServicoAntiFlood();
-    } finally {
-      clearTimeout(limiteTempo);
-    }
-  }
-
-  ConsultarJanelaMemoria(chave, janela) {
-    const limiteInferior = this.obterAgora() - janela;
-    const registros = (this.janelasMemoria.get(chave) || []).filter(({ momento }) => momento > limiteInferior);
-    registros.length ? this.janelasMemoria.set(chave, registros) : this.janelasMemoria.delete(chave);
+  ConsultarJanela(chave, duracao) {
+    const limiteInferior = this.obterAgora() - duracao;
+    const registros = (this.janelas.get(chave) || []).filter(({ momento }) => momento > limiteInferior);
+    registros.length ? this.janelas.set(chave, registros) : this.janelas.delete(chave);
     return registros;
   }
 
-  CalcularEspera(registros, janela) {
-    return Math.max(1000, janela - (this.obterAgora() - registros[0].momento));
+  CalcularEspera(registros, duracao) {
+    return Math.max(1000, duracao - (this.obterAgora() - registros[0].momento));
   }
 
-  async ValidarOrigem(requisicao) {
-    if (this.configuracaoInvalida) throw new ErroServicoAntiFlood();
+  LimparMemoriaExpirada() {
+    const agora = this.obterAgora();
+    if (agora < this.proximaLimpeza) return;
 
-    const janela = 10 * 60 * 1000;
-    const chave = `ordinare:ip:${this.GerarHash(this.ObterIp(requisicao))}`;
-    const membro = randomUUID();
+    const limiteInferior = agora - 30 * 60 * 1000;
+    this.janelas.forEach((registros, chave) => {
+      const atuais = registros.filter(({ momento }) => momento > limiteInferior);
+      atuais.length ? this.janelas.set(chave, atuais) : this.janelas.delete(chave);
+    });
+    this.duplicados.forEach(({ expiraEm }, chave) => {
+      if (expiraEm <= agora) this.duplicados.delete(chave);
+    });
+    this.proximaLimpeza = agora + 60 * 1000;
+  }
 
-    if (this.usarRedis) {
-      const [permitido, espera] = await this.ExecutarRedis(scriptLimiteIp, [chave], [this.obterAgora(), janela, 5, membro]);
-      if (!Number(permitido)) throw new ErroLimiteAntiFlood('Muitas tentativas em pouco tempo.', Number(espera) / 1000);
-      return;
+  ValidarOrigem(requisicao) {
+    this.LimparMemoriaExpirada();
+    const duracao = 10 * 60 * 1000;
+    const chave = `ip:${this.GerarHash(this.ObterIp(requisicao))}`;
+    const registros = this.ConsultarJanela(chave, duracao);
+
+    if (registros.length >= 5) {
+      throw new ErroLimiteAntiFlood(
+        'Muitas tentativas em pouco tempo.',
+        this.CalcularEspera(registros, duracao) / 1000,
+      );
     }
 
-    const registros = this.ConsultarJanelaMemoria(chave, janela);
-    if (registros.length >= 5) throw new ErroLimiteAntiFlood('Muitas tentativas em pouco tempo.', this.CalcularEspera(registros, janela) / 1000);
-    registros.push({ momento: this.obterAgora(), membro });
-    this.janelasMemoria.set(chave, registros);
+    registros.push({ momento: this.obterAgora(), membro: randomUUID() });
+    this.janelas.set(chave, registros);
   }
 
-  async ReservarEnvio(dados) {
-    if (this.configuracaoInvalida) throw new ErroServicoAntiFlood();
-
-    const janelaCurta = 2 * 60 * 1000;
-    const janelaLonga = 30 * 60 * 1000;
-    const janelaDuplicada = 10 * 60 * 1000;
+  ReservarEnvio(dados) {
+    const duracaoCurta = 2 * 60 * 1000;
+    const duracaoLonga = 30 * 60 * 1000;
+    const duracaoDuplicada = 10 * 60 * 1000;
     const contato = this.GerarHash(`${dados.documento}|${dados.telefone}`);
     const conteudo = this.GerarHash(JSON.stringify([
       dados.tipoPessoa,
@@ -170,39 +90,36 @@ class ServicoAntiFlood {
       dados.descricao,
     ]));
     const chaves = {
-      curta: `ordinare:contato:2m:${contato}`,
-      longa: `ordinare:contato:30m:${contato}`,
-      duplicada: `ordinare:duplicada:${conteudo}`,
+      curta: `contato:2m:${contato}`,
+      longa: `contato:30m:${contato}`,
+      duplicada: `duplicada:${conteudo}`,
     };
-    const membro = randomUUID();
+    const agora = this.obterAgora();
+    const duplicada = this.duplicados.get(chaves.duplicada);
 
-    if (this.usarRedis) {
-      const [permitido, espera, motivo] = await this.ExecutarRedis(
-        scriptReservaContato,
-        [chaves.curta, chaves.longa, chaves.duplicada],
-        [this.obterAgora(), janelaCurta, janelaLonga, janelaDuplicada, membro],
-      );
-      if (!Number(permitido)) this.LancarErroContato(Number(motivo), Number(espera));
-      return { modo: 'redis', chaves, membro };
+    if (duplicada?.expiraEm > agora) {
+      this.LancarErroContato(3, duplicada.expiraEm - agora);
+    }
+    if (duplicada) this.duplicados.delete(chaves.duplicada);
+
+    const registrosCurtos = this.ConsultarJanela(chaves.curta, duracaoCurta);
+    if (registrosCurtos.length >= 1) {
+      this.LancarErroContato(1, this.CalcularEspera(registrosCurtos, duracaoCurta));
     }
 
-    const agora = this.obterAgora();
-    const duplicadaAte = this.duplicadosMemoria.get(chaves.duplicada) || 0;
-    if (duplicadaAte > agora) this.LancarErroContato(3, duplicadaAte - agora);
+    const registrosLongos = this.ConsultarJanela(chaves.longa, duracaoLonga);
+    if (registrosLongos.length >= 3) {
+      this.LancarErroContato(2, this.CalcularEspera(registrosLongos, duracaoLonga));
+    }
 
-    const registrosCurtos = this.ConsultarJanelaMemoria(chaves.curta, janelaCurta);
-    if (registrosCurtos.length >= 1) this.LancarErroContato(1, this.CalcularEspera(registrosCurtos, janelaCurta));
-
-    const registrosLongos = this.ConsultarJanelaMemoria(chaves.longa, janelaLonga);
-    if (registrosLongos.length >= 3) this.LancarErroContato(2, this.CalcularEspera(registrosLongos, janelaLonga));
-
+    const membro = randomUUID();
     const registro = { momento: agora, membro };
     registrosCurtos.push(registro);
     registrosLongos.push(registro);
-    this.janelasMemoria.set(chaves.curta, registrosCurtos);
-    this.janelasMemoria.set(chaves.longa, registrosLongos);
-    this.duplicadosMemoria.set(chaves.duplicada, agora + janelaDuplicada);
-    return { modo: 'memoria', chaves, membro };
+    this.janelas.set(chaves.curta, registrosCurtos);
+    this.janelas.set(chaves.longa, registrosLongos);
+    this.duplicados.set(chaves.duplicada, { expiraEm: agora + duracaoDuplicada, membro });
+    return { chaves, membro };
   }
 
   LancarErroContato(motivo, esperaMilissegundos) {
@@ -214,33 +131,22 @@ class ServicoAntiFlood {
     throw new ErroLimiteAntiFlood(mensagens[motivo] || mensagens[2], esperaMilissegundos / 1000);
   }
 
-  async CancelarReserva(reserva) {
+  CancelarReserva(reserva) {
     if (!reserva) return;
 
-    if (reserva.modo === 'redis') {
-      try {
-        await this.ExecutarRedis(
-          scriptCancelarReserva,
-          [reserva.chaves.curta, reserva.chaves.longa, reserva.chaves.duplicada],
-          [reserva.membro],
-        );
-      } catch {
-        return;
-      }
-      return;
-    }
-
     [reserva.chaves.curta, reserva.chaves.longa].forEach((chave) => {
-      const registros = (this.janelasMemoria.get(chave) || []).filter(({ membro }) => membro !== reserva.membro);
-      registros.length ? this.janelasMemoria.set(chave, registros) : this.janelasMemoria.delete(chave);
+      const registros = (this.janelas.get(chave) || []).filter(({ membro }) => membro !== reserva.membro);
+      registros.length ? this.janelas.set(chave, registros) : this.janelas.delete(chave);
     });
-    this.duplicadosMemoria.delete(reserva.chaves.duplicada);
+
+    if (this.duplicados.get(reserva.chaves.duplicada)?.membro === reserva.membro) {
+      this.duplicados.delete(reserva.chaves.duplicada);
+    }
   }
 }
 
 module.exports = {
   ErroLimiteAntiFlood,
-  ErroServicoAntiFlood,
   ServicoAntiFlood,
   servicoAntiFlood: new ServicoAntiFlood(),
 };
