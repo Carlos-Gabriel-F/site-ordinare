@@ -1,5 +1,5 @@
-.env
+.env*
 *.log
-refs/
+referencias/
 .DS_Store
 Thumbs.db

@@ -1,8 +1,10 @@
+// Desabilittado temporáriamente por outra abordagem.
+/*
 const { randomUUID } = require('node:crypto');
 const {
-  ErroLimiteAntiFlood,
-  servicoAntiFlood,
-} = require('./ServicoAntiFlood');
+  ErroLimiteEnvios,
+  servicoLimiteEnvios,
+} = require('./ServicoLimiteEnvios');
 
 const categoriasPermitidas = new Set([
   'abertura',
@@ -43,7 +45,7 @@ function validarCnpj(valor) {
   const cnpj = limparDocumento(valor);
   if (!/^[A-Z0-9]{12}\d{2}$/.test(cnpj) || /^(\d)\1{13}$/.test(cnpj)) return false;
 
-  // O cálculo também atende ao novo CNPJ alfanumérico definido pela Receita Federal.
+  // O cálculo segue a regra do CNPJ numérico e alfanumérico.
   const calcularDigito = (caracteres, pesos) => {
     const soma = [...caracteres].reduce(
       (total, caractere, indice) => total + (caractere.charCodeAt(0) - 48) * pesos[indice],
@@ -111,6 +113,7 @@ function validarDados(corpo) {
   const descricao = String(corpo.descricao || '').trim();
   const erros = {};
 
+  if (corpo.siteEmpresa) erros.siteEmpresa = 'Envio não permitido.';
   if (nome.length < 3) erros.nome = 'Informe seu nome completo.';
   if (!tipoPessoa) erros.tipoPessoa = 'Informe o tipo de pessoa.';
   if (tipoPessoa === 'PF' && !validarCpf(documento)) erros.documento = 'Informe um CPF válido.';
@@ -253,12 +256,23 @@ module.exports = async function receberContato(requisicao, resposta) {
   if (tamanho > 16_384) return responder(resposta, 413, { mensagem: 'Conteúdo muito grande.' });
 
   try {
-    await servicoAntiFlood.ValidarOrigem(requisicao);
-    const corpo = typeof requisicao.body === 'string' ? JSON.parse(requisicao.body) : requisicao.body || {};
+    await servicoLimiteEnvios.ValidarIp(requisicao);
+    const tipoConteudo = String(requisicao.headers['content-type'] || '').split(';')[0];
+    if (tipoConteudo !== 'application/json') {
+      return responder(resposta, 415, { mensagem: 'Formato de conteúdo não permitido.' });
+    }
+
+    let corpo = requisicao.body || {};
+    if (typeof corpo === 'string') {
+      try {
+        corpo = JSON.parse(corpo);
+      } catch {
+        return responder(resposta, 400, { mensagem: 'Conteúdo JSON inválido.' });
+      }
+    }
     const { erros, dados } = validarDados(corpo);
     if (Object.keys(erros).length) return responder(resposta, 422, { mensagem: 'Revise os dados enviados.', erros });
 
-    // Quando disponível, o ViaCEP prevalece; campos ausentes continuam com o preenchimento manual.
     const endereco = await consultarEndereco(dados.cep);
     if (endereco) {
       dados.rua = endereco.rua || dados.rua;
@@ -270,16 +284,16 @@ module.exports = async function receberContato(requisicao, resposta) {
       return responder(resposta, 503, { mensagem: 'O atendimento ainda não está configurado.' });
     }
 
-    const reservaAntiFlood = await servicoAntiFlood.ReservarEnvio(dados);
+    const reservaLimiteEnvios = await servicoLimiteEnvios.ReservarEnvio(dados);
     let enviado = false;
     try {
       enviado = await enviarParaWhatsapp(dados, configuracaoWhatsapp);
     } catch (erro) {
-      await servicoAntiFlood.CancelarReserva(reservaAntiFlood);
+      await servicoLimiteEnvios.CancelarReserva(reservaLimiteEnvios);
       throw erro;
     }
     if (!enviado) {
-      await servicoAntiFlood.CancelarReserva(reservaAntiFlood);
+      await servicoLimiteEnvios.CancelarReserva(reservaLimiteEnvios);
       return responder(resposta, 502, { mensagem: 'Não foi possível encaminhar agora. Tente novamente.' });
     }
 
@@ -287,7 +301,7 @@ module.exports = async function receberContato(requisicao, resposta) {
     console.info({ evento: 'contato_enviado', idSolicitacao });
     return responder(resposta, 202, { sucesso: true, idSolicitacao });
   } catch (erro) {
-    if (erro instanceof ErroLimiteAntiFlood) {
+    if (erro instanceof ErroLimiteEnvios) {
       resposta.setHeader('Retry-After', String(erro.tentarNovamenteEm));
       return responder(resposta, 429, {
         mensagem: erro.message,
@@ -298,3 +312,4 @@ module.exports = async function receberContato(requisicao, resposta) {
     return responder(resposta, 500, { mensagem: 'Não foi possível concluir o atendimento.' });
   }
 };
+*/

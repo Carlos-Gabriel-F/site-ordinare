@@ -1,14 +1,16 @@
+// Desabilittado temporáriamente por outra abordagem.
+/*
 const { createHmac, randomBytes, randomUUID } = require('node:crypto');
 
-class ErroLimiteAntiFlood extends Error {
+class ErroLimiteEnvios extends Error {
   constructor(mensagem, tentarNovamenteEm) {
     super(mensagem);
-    this.name = 'ErroLimiteAntiFlood';
+    this.name = 'ErroLimiteEnvios';
     this.tentarNovamenteEm = Math.max(1, Math.ceil(tentarNovamenteEm));
   }
 }
 
-class ServicoAntiFlood {
+class ServicoLimiteEnvios {
   constructor(configuracao = {}) {
     this.segredoHash = configuracao.segredoHash || randomBytes(32).toString('hex');
     this.obterAgora = configuracao.obterAgora || (() => Date.now());
@@ -53,14 +55,14 @@ class ServicoAntiFlood {
     this.proximaLimpeza = agora + 60 * 1000;
   }
 
-  ValidarOrigem(requisicao) {
+  ValidarIp(requisicao) {
     this.LimparMemoriaExpirada();
     const duracao = 10 * 60 * 1000;
     const chave = `ip:${this.GerarHash(this.ObterIp(requisicao))}`;
     const registros = this.ConsultarJanela(chave, duracao);
 
-    if (registros.length >= 5) {
-      throw new ErroLimiteAntiFlood(
+    if (registros.length >= 20) {
+      throw new ErroLimiteEnvios(
         'Muitas tentativas em pouco tempo.',
         this.CalcularEspera(registros, duracao) / 1000,
       );
@@ -128,7 +130,7 @@ class ServicoAntiFlood {
       2: 'Limite de solicitações atingido. Tente novamente mais tarde.',
       3: 'Esta solicitação já foi encaminhada recentemente.',
     };
-    throw new ErroLimiteAntiFlood(mensagens[motivo] || mensagens[2], esperaMilissegundos / 1000);
+    throw new ErroLimiteEnvios(mensagens[motivo] || mensagens[2], esperaMilissegundos / 1000);
   }
 
   CancelarReserva(reserva) {
@@ -146,7 +148,8 @@ class ServicoAntiFlood {
 }
 
 module.exports = {
-  ErroLimiteAntiFlood,
-  ServicoAntiFlood,
-  servicoAntiFlood: new ServicoAntiFlood(),
+  ErroLimiteEnvios,
+  ServicoLimiteEnvios,
+  servicoLimiteEnvios: new ServicoLimiteEnvios(),
 };
+*/

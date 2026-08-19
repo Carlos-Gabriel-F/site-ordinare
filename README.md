@@ -1,57 +1,73 @@
 # Ordinare
 
-Site institucional estático da Ordinare, feito com HTML, CSS e JavaScript puro. A única parte executada no servidor é o envio seguro do formulário para a API oficial do WhatsApp.
+Site institucional da Ordinare desenvolvido com HTML, CSS e JavaScript puro. O formulário prepara a mensagem e abre o WhatsApp para o próprio usuário confirmar o envio.
 
 ## Estrutura
 
 ```text
-├── index.html       # conteúdo da página
-├── estilos.css      # identidade visual e responsividade
-├── principal.js     # menu, modal, máscaras, ViaCEP e formulário
-├── icone-whatsapp.svg
+├── index.html
+├── recursos/
+│   ├── estilos/
+│   │   └── estilos.css
+│   ├── imagens/
+│   │   ├── icone-whatsapp.svg
+│   │   └── compartilhamento.png
+│   └── javascript/
+│       ├── principal.js
+│       ├── formulario.js
+│       └── validacoes.js
 ├── api/
-│   ├── contato.js            # validação final e envio seguro ao WhatsApp
-│   └── ServicoAntiFlood.js   # limites de envio e bloqueio de duplicidades
-├── og.png           # imagem de compartilhamento
-└── refs/            # material local de referência, ignorado pelo Git
+│   ├── contato.js
+│   └── ServicoLimiteEnvios.js
+└── referencias/
 ```
 
-Para visualizar a página, abra o `index.html` diretamente ou use um servidor estático simples, como a extensão Live Server do editor.
+O `principal.js` inicializa a navegação e o formulário. As regras do formulário, CEP e WhatsApp ficam em `formulario.js`; máscaras e validações reutilizáveis ficam em `validacoes.js`.
+
+Os arquivos da pasta `api` estão temporariamente comentados e preservados para uma futura integração automática com usuário de serviço.
 
 ## WhatsApp
 
-O arquivo `api/contato.js` é uma função serverless compatível com o padrão de requisição e resposta da Vercel. Caso outro provedor seja escolhido, somente esse adaptador precisará ser ajustado.
+O número usado no primeiro teste é `5511932161365` e está definido no `formulario.js`.
 
-Configure no ambiente do servidor as variáveis descritas em `.env.example`. Elas não podem ser colocadas no `principal.js`, no HTML ou receber qualquer prefixo que as publique no navegador.
+- Computadores abrem o WhatsApp Web em uma nova aba.
+- Celulares e tablets abrem o endereço `wa.me`, permitindo que o sistema encaminhe ao aplicativo instalado.
+- A mensagem contém os campos preenchidos e ainda precisa ser enviada pelo próprio usuário.
+- Nenhum token ou credencial da Meta é necessário nessa abordagem.
 
-Para o primeiro teste, mantenha `WHATSAPP_MODO_ENVIO=teste`. Esse modo chama o endpoint oficial `/messages` usando o modelo pré-aprovado `hello_world`; basta informar versão da API, identificador do telefone, token e número destinatário.
+Os dados da mensagem são codificados no endereço do WhatsApp. A coleta de CPF/CNPJ, nascimento e endereço deve permanecer informada no aviso de privacidade.
 
-Depois do teste existem dois modos:
+## Proteção inicial contra repetição
 
-- `texto`: envia os dados formatados quando a conta puder enviar mensagem de texto ao destinatário;
-- `modelo`: usa um modelo aprovado pela Meta com doze parâmetros, na ordem nome, tipo de pessoa, documento, nascimento, telefone, CEP, rua, cidade, estado, categoria, regime tributário e descrição.
+Como não existe envio automático nem chamada à API da Meta, o site não consegue disparar mensagens sozinho. A proteção inicial inclui:
 
-No modo `modelo`, configure também `WHATSAPP_NOME_MODELO` e `WHATSAPP_IDIOMA_MODELO`.
+- validação obrigatória de todos os campos;
+- botão bloqueado enquanto o formulário estiver inválido;
+- campo invisível contra preenchimento automatizado simples;
+- intervalo local de sessenta segundos entre aberturas do WhatsApp;
+- limpeza dos dados depois que o WhatsApp for aberto.
 
-Sem as credenciais, o formulário responde que o atendimento ainda não foi configurado. Isso evita incluir tokens fictícios ou expor segredos no frontend.
+O intervalo local é uma barreira de conveniência e pode ser contornado por quem controla o navegador. Um bloqueio forte somente será necessário se o envio automático pela API for reativado.
 
-## Proteção contra excesso de envios
+## Evolução quando houver escala
 
-O `ServicoAntiFlood` aplica três limites no servidor:
+1. Manter a abertura manual enquanto o volume de contatos for baixo.
+2. Adicionar Cloudflare Turnstile gratuito se houver automação abusiva do formulário.
+3. Ao reativar a API, usar limite distribuído, idempotência e validação no servidor.
+4. Em alto volume, adicionar fila de envio, métricas, alertas e limites de custo.
 
-- cinco tentativas por IP em dez minutos;
-- um envio por CPF/CNPJ e telefone a cada dois minutos, limitado a três em trinta minutos;
-- bloqueio de uma solicitação idêntica por dez minutos.
+## Responsividade
 
-Os identificadores são mantidos em memória como hashes HMAC; CPF, telefone, IP e descrição não são gravados em texto aberto. Se o envio ao WhatsApp falhar, a reserva do contato é cancelada para permitir uma nova tentativa legítima. As respostas bloqueadas usam HTTP `429` e o cabeçalho `Retry-After`.
-
-Essa proteção não exige banco de dados nem serviço REST e, portanto, não gera custo adicional. Ela funciona por processo: reinícios ou múltiplas instâncias reiniciam e separam os contadores. Quando o volume justificar uma infraestrutura distribuída, o serviço poderá receber outro mecanismo de armazenamento sem alterar o formulário ou o endpoint.
+- Até `1080px`: menu móvel e conteúdo principal em uma coluna, adequado para tablets em retrato e paisagem.
+- Até `680px`: cartões, rodapé e formulário em uma coluna, adequado para celulares.
+- Altura de até `600px` em paisagem: cabeçalho e formulário do modal são compactados e permanecem roláveis.
+- Imagens, grades e textos respeitam a largura disponível sem criar rolagem horizontal.
 
 ## Antes da publicação
 
-- Substituir no HTML o telefone, e-mail, endereço e CRC marcados como pendentes.
+- Substituir telefone, e-mail e CRC pelos dados oficiais.
 - Revisar a necessidade de CPF e nascimento e validar o aviso de privacidade com o responsável pela LGPD.
-- Configurar o template, o destinatário e as credenciais da Meta.
-- Configurar também uma regra de borda para `POST /api/contato` no provedor escolhido.
+- Substituir o número de teste pelo WhatsApp definitivo.
+- Reavaliar a proteção no servidor caso a integração automática seja reativada.
 
-Os nomes do projeto, seletores e funções próprias estão padronizados em PT-BR. Termos obrigatórios das plataformas, como `fetch`, `addEventListener`, `module.exports` e nomes de propriedades da API da Meta, permanecem no formato definido por essas tecnologias.
+Os nomes próprios do projeto estão em PT-BR. Nomes obrigatórios das plataformas, como `fetch`, `addEventListener`, `module.exports` e propriedades da API da Meta, preservam o formato exigido por essas tecnologias.

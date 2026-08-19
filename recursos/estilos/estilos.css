@@ -183,6 +183,14 @@ h3 {
   transform: none;
 }
 
+.campo-armadilha {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
 .icone-whatsapp {
   width: 19px;
   height: 19px;
@@ -729,6 +737,7 @@ ode-cartao-servico button {
   color: var(--azul);
   font-size: clamp(1rem, 2vw, 1.25rem);
   font-weight: 650;
+  overflow-wrap: anywhere;
 }
 
 .grade-contatos a:hover {
@@ -1080,7 +1089,7 @@ ode-cartao-servico button {
   background: #e8e7e2;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1080px) {
   .menu-desktop,
   .botao-contato-cabecalho {
     display: none;
@@ -1240,6 +1249,40 @@ ode-cartao-servico button {
 
   .modal-contato > header {
     padding-left: 24px;
+  }
+
+  .modal-contato > header h2 {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-height: 600px) and (orientation: landscape) {
+  .modal-contato {
+    max-height: calc(100dvh - 16px);
+    border-radius: 20px;
+  }
+
+  .modal-contato > header {
+    padding: 16px 64px 14px 24px;
+  }
+
+  .modal-contato > header .chamada {
+    display: none;
+  }
+
+  .modal-contato > header h2 {
+    margin-bottom: 4px;
+    font-size: 1.45rem;
+  }
+
+  #fechar-modal {
+    top: 12px;
+    right: 14px;
+  }
+
+  #formulario-contato {
+    max-height: calc(100dvh - 108px);
+    padding: 20px 24px 24px;
   }
 }
 
