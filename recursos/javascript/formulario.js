@@ -4,9 +4,12 @@ const avisoEndereco = document.querySelector('#aviso-endereco');
 const camposEndereco = [...formulario.querySelectorAll('[data-endereco]')];
 const contadorDescricao = document.querySelector('#contador-descricao');
 const botaoEnviar = formulario.querySelector('[type="submit"]');
+const avisoPendencias = document.querySelector('#pendencias-formulario');
 const numeroWhatsappEmpresa = '5511932161365';
 const chaveUltimaAberturaWhatsapp = 'ordinareUltimaAberturaWhatsapp';
 const intervaloAberturaWhatsapp = 60 * 1000;
+const camposInteragidos = new Set();
+let formularioInteragido = false;
 let numeroConsultaCep = 0;
 const categoriasValidas = [...document.querySelector('#categoria').options]
   .map((opcao) => opcao.value)
@@ -38,6 +41,8 @@ function atualizarTipoPessoa() {
   documento.inputMode = pessoaJuridica ? 'text' : 'numeric';
   documento.value = '';
   if (pessoaJuridica) formulario.elements.dataNascimento.value = '';
+  camposInteragidos.delete('documento');
+  camposInteragidos.delete('dataNascimento');
   informarErro('documento');
   informarErro('dataNascimento');
   atualizarEstadoBotaoEnviar();
@@ -63,11 +68,15 @@ function permitirEnderecoManual(mensagem) {
 
 function limparFormulario(focarPrimeiroCampo = false) {
   numeroConsultaCep += 1;
+  formularioInteragido = false;
+  camposInteragidos.clear();
   formulario.reset();
   formulario.querySelectorAll('[data-erro]').forEach((aviso) => (aviso.textContent = ''));
   formulario.querySelectorAll('[aria-invalid="true"]').forEach((campo) => campo.removeAttribute('aria-invalid'));
   formulario.querySelector('[data-aviso-cep]').textContent = 'Informe o CEP para localizar o endereço.';
   contadorDescricao.textContent = '0/500';
+  avisoPendencias.textContent = '';
+  avisoPendencias.className = 'pendencias-formulario campo-inteiro';
   alterarEstadoFormulario();
   prepararEnderecoAutomatico();
   atualizarTipoPessoa();
@@ -165,7 +174,43 @@ function validarFormulario() {
 
 function atualizarEstadoBotaoEnviar() {
   const { erros } = validarFormulario();
+  const pendencias = Object.entries(erros).filter(([campo]) => campo !== 'siteEmpresa');
+  const mostrarPendenciasRestantes = formularioInteragido && pendencias.length <= 2;
+  let quantidadeErrosVisiveis = 0;
+
+  formulario.querySelectorAll('[data-erro]').forEach((aviso) => {
+    const campo = aviso.dataset.erro;
+    const mensagem = erros[campo] || '';
+    const mostrarErro = Boolean(mensagem) && (camposInteragidos.has(campo) || mostrarPendenciasRestantes);
+    informarErro(campo, mostrarErro ? mensagem : '');
+    if (mostrarErro) quantidadeErrosVisiveis += 1;
+  });
+
   botaoEnviar.disabled = Object.keys(erros).length > 0;
+  if (!formularioInteragido) {
+    avisoPendencias.textContent = '';
+    avisoPendencias.className = 'pendencias-formulario campo-inteiro';
+  } else if (!botaoEnviar.disabled) {
+    avisoPendencias.textContent = 'Tudo certo. Você já pode continuar pelo WhatsApp.';
+    avisoPendencias.className = 'pendencias-formulario campo-inteiro sucesso';
+  } else if (quantidadeErrosVisiveis > 0) {
+    avisoPendencias.textContent = 'Revise os campos destacados para continuar pelo WhatsApp.';
+    avisoPendencias.className = 'pendencias-formulario campo-inteiro erro';
+  } else {
+    avisoPendencias.textContent = 'Preencha todos os campos obrigatórios para liberar o WhatsApp.';
+    avisoPendencias.className = 'pendencias-formulario campo-inteiro';
+  }
+}
+
+function registrarDigitacaoFormulario() {
+  formularioInteragido = true;
+  atualizarEstadoBotaoEnviar();
+}
+
+function registrarCampoInteragido(evento) {
+  formularioInteragido = true;
+  if (evento.target.name) camposInteragidos.add(evento.target.name);
+  atualizarEstadoBotaoEnviar();
 }
 
 function formatarDataMensagem(data) {
@@ -317,8 +362,9 @@ function inicializarFormulario() {
   });
   modalContato.addEventListener('close', () => document.body.classList.remove('modal-aberto'));
   formulario.addEventListener('submit', enviarFormulario);
-  formulario.addEventListener('input', atualizarEstadoBotaoEnviar);
-  formulario.addEventListener('change', atualizarEstadoBotaoEnviar);
+  formulario.addEventListener('input', registrarDigitacaoFormulario);
+  formulario.addEventListener('change', registrarCampoInteragido);
+  formulario.addEventListener('focusout', registrarCampoInteragido);
   document.querySelector('#limpar-formulario').addEventListener('click', () => limparFormulario(true));
   formulario.elements.documento.addEventListener('input', (evento) => {
     evento.target.value = formulario.elements.tipoPessoa.value === 'PJ'

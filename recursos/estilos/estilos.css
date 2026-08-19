@@ -969,6 +969,26 @@ ode-cartao-servico button {
   font-size: 0.7rem;
 }
 
+.campo:not(.aceite) > small[data-erro] {
+  order: 1;
+  min-height: auto;
+  font-weight: 650;
+}
+
+.campo:not(.aceite) > input,
+.campo:not(.aceite) > select,
+.campo:not(.aceite) > textarea {
+  order: 2;
+}
+
+.campo:not(.aceite) > small[data-aviso-cep] {
+  order: 3;
+}
+
+.campo small[data-erro]:empty {
+  display: none;
+}
+
 .campo small[data-aviso-cep] {
   color: var(--texto-suave);
 }
@@ -1067,6 +1087,29 @@ ode-cartao-servico button {
 }
 
 .estado-formulario.sucesso {
+  color: var(--azul-medio);
+  background: #e5ebef;
+}
+
+.pendencias-formulario {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 10px;
+  color: var(--texto-suave);
+  background: var(--fundo);
+  font-size: 0.78rem;
+}
+
+.pendencias-formulario:empty {
+  display: none;
+}
+
+.pendencias-formulario.erro {
+  color: #7e282e;
+  background: #fae9ea;
+}
+
+.pendencias-formulario.sucesso {
   color: var(--azul-medio);
   background: #e5ebef;
 }
