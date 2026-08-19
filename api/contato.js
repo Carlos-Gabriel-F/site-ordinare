@@ -1,4 +1,9 @@
 const { randomUUID } = require('node:crypto');
+const {
+  ErroLimiteAntiFlood,
+  ErroServicoAntiFlood,
+  servicoAntiFlood,
+} = require('./ServicoAntiFlood');
 
 const categoriasPermitidas = new Set([
   'abertura',
@@ -15,7 +20,6 @@ const categoriasPermitidas = new Set([
   'lucro-real',
 ]);
 const regimesPermitidos = new Set(['mei', 'simples-nacional', 'lucro-presumido', 'lucro-real', 'nao-sei']);
-const tentativasPorOrigem = new Map();
 
 const somenteNumeros = (valor) => String(valor || '').replace(/\D/g, '');
 const limparDocumento = (valor) => String(valor || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -84,23 +88,6 @@ function responder(resposta, codigo, conteudo) {
   resposta.setHeader('Content-Type', 'application/json; charset=utf-8');
   resposta.setHeader('Cache-Control', 'no-store');
   resposta.end(JSON.stringify(conteudo));
-}
-
-function limiteExcedido(requisicao) {
-  const origem = String(requisicao.headers['x-forwarded-for'] || requisicao.socket?.remoteAddress || 'local')
-    .split(',')[0]
-    .trim();
-  const agora = Date.now();
-  const janela = 15 * 60 * 1000;
-  const registro = tentativasPorOrigem.get(origem);
-
-  if (!registro || agora - registro.inicio > janela) {
-    tentativasPorOrigem.set(origem, { inicio: agora, quantidade: 1 });
-    return false;
-  }
-
-  registro.quantidade += 1;
-  return registro.quantidade > 5;
 }
 
 function origemPermitida(requisicao) {
@@ -222,12 +209,12 @@ async function enviarParaWhatsapp(dados) {
 module.exports = async function receberContato(requisicao, resposta) {
   if (requisicao.method !== 'POST') return responder(resposta, 405, { mensagem: 'Método não permitido.' });
   if (!origemPermitida(requisicao)) return responder(resposta, 403, { mensagem: 'Origem não permitida.' });
-  if (limiteExcedido(requisicao)) return responder(resposta, 429, { mensagem: 'Tente novamente em alguns minutos.' });
 
   const tamanho = Number(requisicao.headers['content-length'] || 0);
   if (tamanho > 16_384) return responder(resposta, 413, { mensagem: 'Conteúdo muito grande.' });
 
   try {
+    await servicoAntiFlood.ValidarOrigem(requisicao);
     const corpo = typeof requisicao.body === 'string' ? JSON.parse(requisicao.body) : requisicao.body || {};
     const { erros, dados } = validarDados(corpo);
     if (Object.keys(erros).length) return responder(resposta, 422, { mensagem: 'Revise os dados enviados.', erros });
@@ -248,13 +235,33 @@ module.exports = async function receberContato(requisicao, resposta) {
     ].every(Boolean);
     if (!configurado) return responder(resposta, 503, { mensagem: 'O atendimento ainda não está configurado.' });
 
-    const enviado = await enviarParaWhatsapp(dados);
-    if (!enviado) return responder(resposta, 502, { mensagem: 'Não foi possível encaminhar agora. Tente novamente.' });
+    const reservaAntiFlood = await servicoAntiFlood.ReservarEnvio(dados);
+    let enviado = false;
+    try {
+      enviado = await enviarParaWhatsapp(dados);
+    } catch (erro) {
+      await servicoAntiFlood.CancelarReserva(reservaAntiFlood);
+      throw erro;
+    }
+    if (!enviado) {
+      await servicoAntiFlood.CancelarReserva(reservaAntiFlood);
+      return responder(resposta, 502, { mensagem: 'Não foi possível encaminhar agora. Tente novamente.' });
+    }
 
     const idSolicitacao = randomUUID();
     console.info({ evento: 'contato_enviado', idSolicitacao });
     return responder(resposta, 202, { sucesso: true, idSolicitacao });
   } catch (erro) {
+    if (erro instanceof ErroLimiteAntiFlood) {
+      resposta.setHeader('Retry-After', String(erro.tentarNovamenteEm));
+      return responder(resposta, 429, {
+        mensagem: erro.message,
+        tentarNovamenteEm: erro.tentarNovamenteEm,
+      });
+    }
+    if (erro instanceof ErroServicoAntiFlood) {
+      return responder(resposta, 503, { mensagem: 'A proteção de envio está temporariamente indisponível.' });
+    }
     console.error({ evento: 'falha_contato', tipo: erro.name });
     return responder(resposta, 500, { mensagem: 'Não foi possível concluir o atendimento.' });
   }

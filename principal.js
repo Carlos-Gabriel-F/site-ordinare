@@ -270,7 +270,11 @@ async function enviarFormulario(evento) {
       body: JSON.stringify(dados),
     });
     const retorno = await resposta.json();
-    if (!resposta.ok) throw Object.assign(new Error(retorno.mensagem), { erros: retorno.erros });
+    if (!resposta.ok) {
+      const minutos = retorno.tentarNovamenteEm ? Math.max(1, Math.ceil(retorno.tentarNovamenteEm / 60)) : 0;
+      const complemento = minutos ? ` Aguarde aproximadamente ${minutos} minuto${minutos > 1 ? 's' : ''}.` : '';
+      throw Object.assign(new Error(`${retorno.mensagem}${complemento}`), { erros: retorno.erros });
+    }
     limparFormulario();
     alterarEstadoFormulario('Solicitação enviada. Um contador entrará em contato.', 'sucesso');
   } catch (erro) {
