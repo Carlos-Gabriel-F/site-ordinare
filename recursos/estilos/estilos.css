@@ -864,14 +864,16 @@ ode-cartao-servico button {
 }
 
 .modal-contato {
-  width: min(760px, calc(100% - 28px));
-  max-height: calc(100dvh - 32px);
+  width: min(730px, calc(100% - 36px));
+  max-height: calc(100dvh - 56px);
   padding: 0;
   overflow: hidden;
   border: 0;
-  border-radius: 30px;
+  border-radius: 24px;
   background: var(--branco);
-  box-shadow: 0 36px 90px rgb(7 26 44 / 35%);
+  box-shadow:
+    0 32px 80px rgb(7 26 44 / 48%),
+    0 10px 28px rgb(7 26 44 / 24%);
 }
 
 .modal-contato::backdrop {
@@ -881,15 +883,15 @@ ode-cartao-servico button {
 
 .modal-contato > header {
   position: relative;
-  padding: 30px 70px 26px 34px;
+  padding: 24px 66px 20px 28px;
   color: #bdc9d2;
   background: var(--azul);
 }
 
 .modal-contato > header h2 {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: var(--branco);
-  font-size: 2.2rem;
+  font-size: 1.9rem;
 }
 
 .modal-contato > header p:last-of-type {
@@ -901,8 +903,8 @@ ode-cartao-servico button {
   display: grid;
   width: 42px;
   height: 42px;
-  top: 22px;
-  right: 22px;
+  top: 18px;
+  right: 18px;
   border: 1px solid rgb(255 255 255 / 20%);
   border-radius: 50%;
   place-items: center;
@@ -914,9 +916,9 @@ ode-cartao-servico button {
 #formulario-contato {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  max-height: calc(100dvh - 220px);
-  gap: 18px;
-  padding: 30px 34px 36px;
+  max-height: min(610px, calc(100dvh - 220px));
+  gap: 14px 16px;
+  padding: 24px 28px 28px;
   overflow-y: auto;
 }
 
@@ -981,16 +983,8 @@ ode-cartao-servico button {
   order: 2;
 }
 
-.campo:not(.aceite) > small[data-aviso-cep] {
-  order: 3;
-}
-
 .campo small[data-erro]:empty {
   display: none;
-}
-
-.campo small[data-aviso-cep] {
-  color: var(--texto-suave);
 }
 
 .rotulo-com-contador {
@@ -1003,46 +997,61 @@ ode-cartao-servico button {
   font-weight: 500;
 }
 
-.aviso-endereco {
-  margin: -2px 0 0;
-  padding: 9px 12px;
-  border-left: 3px solid var(--erro);
-  border-radius: 6px;
-  color: #7e282e;
-  background: #f8e9e8;
-  font-size: 0.74rem;
+.asterisco-obrigatorio {
+  color: var(--erro);
+  font-weight: 800;
 }
 
-.aviso-endereco[hidden] {
-  display: none;
+.rotulo-opcional {
+  color: var(--texto-suave);
+  font-size: 0.72rem;
+  font-weight: 500;
 }
 
-.seletor-pessoa {
+[data-grupo-atendimento][hidden] {
+  display: none !important;
+}
+
+.campo-tipo-atendimento {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.campo-tipo-atendimento legend {
+  margin-bottom: 8px;
+}
+
+.seletor-atendimento {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
   padding: 4px;
   border: 1px solid var(--borda);
   border-radius: 10px;
   background: var(--fundo);
 }
 
-.seletor-pessoa label {
+.seletor-atendimento label {
   position: relative;
   display: grid;
-  min-height: 40px;
+  min-height: 48px;
+  padding: 8px;
   border-radius: 8px;
   place-items: center;
+  text-align: center;
   cursor: pointer;
 }
 
-.seletor-pessoa input {
+.seletor-atendimento input {
   position: absolute;
   width: 1px;
   height: 1px;
   opacity: 0;
 }
 
-.seletor-pessoa label:has(input:checked) {
+.seletor-atendimento label:has(input:checked) {
   color: var(--branco);
   background: var(--azul);
 }
@@ -1221,6 +1230,12 @@ ode-cartao-servico button {
 }
 
 @media (max-width: 680px) {
+  .modal-contato {
+    width: calc(100% - 20px);
+    max-height: calc(100dvh - 24px);
+    border-radius: 20px;
+  }
+
   .limite {
     width: min(calc(100% - 28px), var(--limite));
   }
@@ -1278,7 +1293,12 @@ ode-cartao-servico button {
 
   #formulario-contato {
     grid-template-columns: 1fr;
-    padding: 24px;
+    max-height: calc(100dvh - 190px);
+    padding: 20px;
+  }
+
+  .seletor-atendimento {
+    grid-template-columns: 1fr;
   }
 
   .acoes-formulario {
@@ -1291,7 +1311,7 @@ ode-cartao-servico button {
   }
 
   .modal-contato > header {
-    padding-left: 24px;
+    padding: 20px 60px 18px 20px;
   }
 
   .modal-contato > header h2 {
@@ -1301,7 +1321,7 @@ ode-cartao-servico button {
 
 @media (max-height: 600px) and (orientation: landscape) {
   .modal-contato {
-    max-height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 32px);
     border-radius: 20px;
   }
 
@@ -1324,7 +1344,7 @@ ode-cartao-servico button {
   }
 
   #formulario-contato {
-    max-height: calc(100dvh - 108px);
+    max-height: calc(100dvh - 128px);
     padding: 20px 24px 24px;
   }
 }

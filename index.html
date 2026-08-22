@@ -19,7 +19,8 @@
     <title>Ordinare | Contabilidade digital para PMEs</title>
     <link rel="stylesheet" href="./recursos/estilos/estilos.css" />
   </head>
-  <body>
+  <!-- Contatos centralizados para facilitar a substituição dos dados da Ordinare. -->
+  <body data-telefone-ordinare="5511932161365" data-email-ordinare="contato@ordinare.com.br">
     <a class="atalho-conteudo" href="#conteudo-principal">Ir para o conteúdo principal</a>
 
     <header class="cabecalho" id="cabecalho">
@@ -218,8 +219,8 @@
             <p>Escolha o canal mais conveniente para falar com a equipe da Ordinare.</p>
           </div>
           <div class="grade-contatos">
-            <article><span aria-hidden="true">@</span><div><p>E-mail</p><a href="mailto:contato@ordinare.com.br">contato@ordinare.com.br</a></div></article>
-            <article><span aria-hidden="true">☎</span><div><p>Telefone</p><a href="tel:+5511932161365">(11) 93216-1365</a></div></article>
+            <article><span aria-hidden="true">@</span><div><p>E-mail</p><a data-contato-email href="mailto:contato@ordinare.com.br">contato@ordinare.com.br</a></div></article>
+            <article><span aria-hidden="true">☎</span><div><p>Telefone</p><a data-contato-telefone href="tel:+5511932161365">(11) 93216-1365</a></div></article>
           </div>
         </div>
       </section>
@@ -240,7 +241,7 @@
         <div class="limite aviso-privacidade">
           <span aria-hidden="true">✓</span>
           <div><p class="chamada"><span></span> Privacidade por princípio</p><h2 id="titulo-privacidade">Seus dados merecem cuidado.</h2></div>
-          <p>Os dados do formulário são usados somente para analisar a solicitação e encaminhá-la aos contadores pela WhatsApp Business Platform. O site não utiliza banco de dados nesta etapa. Antes da publicação, este aviso deverá ser revisado com os dados oficiais da Ordinare.</p>
+          <p>Os dados do formulário são usados somente para preparar a mensagem de atendimento no WhatsApp do próprio usuário. O site não utiliza banco de dados nesta etapa. Antes da publicação, este aviso deverá ser revisado com os dados oficiais da Ordinare.</p>
         </div>
       </section>
 
@@ -253,29 +254,40 @@
       <div class="limite grade-rodape">
         <div><ode-logotipo><span aria-hidden="true"></span>Ordinare</ode-logotipo><p>Contabilidade digital, consultiva e próxima para empresas que querem crescer com clareza.</p></div>
         <div><strong>Navegue</strong><a href="#servicos">Serviços</a><a href="#conteudo-ajuda">Conteúdo e ajuda</a><a href="#contatos">Contatos</a><a href="#privacidade">Privacidade</a></div>
-        <div><strong>Contato</strong><p>contato@ordinare.com.br</p><p>(11) 93216-1365</p><p>CRC a informar</p></div>
+        <div><strong>Contato</strong><p data-contato-email>contato@ordinare.com.br</p><p data-contato-telefone>(11) 93216-1365</p><p>CRC a informar</p></div>
       </div>
       <div class="limite base-rodape">© <span id="ano-atual"></span> Ordinare Contabilidade. Todos os direitos reservados.</div>
     </footer>
 
     <dialog class="modal-contato" id="modal-contato" aria-labelledby="titulo-contato">
-      <header><p class="chamada chamada-clara"><span></span> Primeiro contato</p><h2 id="titulo-contato">Conte um pouco sobre você.</h2><p>Direcionaremos sua conversa para o especialista certo.</p><button type="button" id="fechar-modal" aria-label="Fechar formulário">×</button></header>
+      <header><p class='chamada chamada-clara'><span></span> Primeiro contato</p><h2 id='titulo-contato'>Como Podemos Ajudar?</h2><p>Escolha uma opção e conte o que você precisa.</p><button type='button' id='fechar-modal' aria-label='Fechar formulário'>×</button></header>
       <form id="formulario-contato" novalidate>
         <div class="campo-armadilha" aria-hidden="true"><label for="siteEmpresa">Site da empresa</label><input id="siteEmpresa" name="siteEmpresa" type="text" tabindex="-1" autocomplete="off" /></div>
-        <div class="campo campo-inteiro"><label for="nome">Nome completo</label><input id="nome" name="nome" type="text" autocomplete="name" maxlength="120" required /><small data-erro="nome"></small></div>
-        <fieldset class="campo campo-inteiro"><legend>Tipo de pessoa</legend><div class="seletor-pessoa"><label><input type="radio" name="tipoPessoa" value="PF" checked /> Pessoa física</label><label><input type="radio" name="tipoPessoa" value="PJ" /> Pessoa jurídica</label></div></fieldset>
-        <div class="campo"><label for="documento" id="rotulo-documento">CPF</label><input id="documento" name="documento" type="text" inputmode="numeric" maxlength="18" required /><small data-erro="documento"></small></div>
-        <div class="campo" id="campo-nascimento"><label for="dataNascimento">Data de nascimento</label><input id="dataNascimento" name="dataNascimento" type="date" required /><small data-erro="dataNascimento"></small></div>
-        <div class="campo campo-inteiro"><label for="telefone">Número de telefone</label><input id="telefone" name="telefone" type="tel" inputmode="tel" autocomplete="tel" maxlength="16" placeholder="(11) 99999-9999" required /><small data-erro="telefone"></small></div>
-        <div class="campo campo-inteiro"><label for="cep">CEP</label><input id="cep" name="cep" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="00000-000" required /><small data-aviso-cep>Informe o CEP para localizar o endereço.</small><small data-erro="cep"></small></div>
-        <p class="aviso-endereco campo-inteiro" id="aviso-endereco" role="status" hidden>Não foi possível encontrar o endereço. Preencha os campos abaixo.</p>
-        <div class="campo campo-inteiro"><label for="rua">Rua</label><input id="rua" name="rua" type="text" autocomplete="street-address" maxlength="150" readonly required data-endereco /><small data-erro="rua"></small></div>
-        <div class="campo"><label for="cidade">Cidade</label><input id="cidade" name="cidade" type="text" maxlength="100" readonly required data-endereco /><small data-erro="cidade"></small></div>
-        <div class="campo"><label for="estado">Estado</label><input id="estado" name="estado" type="text" maxlength="2" readonly required data-endereco /><small data-erro="estado"></small></div>
-        <div class="campo"><label for="categoria">Categoria</label><select id="categoria" name="categoria" required><option value="">Selecione</option><optgroup label="Serviços"><option value="abertura">Abertura de empresa</option><option value="consultoria-financeira">Consultoria financeira</option><option value="contabilidade-mensal">Contabilidade mensal</option><option value="bpo-financeiro">BPO financeiro</option><option value="folha-pagamento">Folha de pagamento</option><option value="consultoria-tributaria">Consultoria tributária</option></optgroup><optgroup label="Conteúdo e Ajuda"><option value="emissao-nf">Emissão de nota fiscal</option><option value="reducao-impostos">Redução de impostos</option><option value="mei">MEI</option><option value="simples-nacional">Simples Nacional</option><option value="lucro-presumido">Lucro Presumido</option><option value="lucro-real">Lucro Real</option></optgroup></select><small data-erro="categoria"></small></div>
-        <div class="campo campo-inteiro"><label for="regimeTributario">Regime tributário atual</label><select id="regimeTributario" name="regimeTributario" required><option value="">Selecione</option><option value="mei">MEI</option><option value="simples-nacional">Simples Nacional</option><option value="lucro-presumido">Lucro Presumido</option><option value="lucro-real">Lucro Real</option><option value="nao-sei">Não sei / Quero orientação</option></select><small data-erro="regimeTributario"></small></div>
-        <div class="campo campo-inteiro"><label class="rotulo-com-contador" for="descricao"><span>Descrição da solicitação</span><span id="contador-descricao">0/500</span></label><textarea id="descricao" name="descricao" rows="5" maxlength="500" placeholder="Conte brevemente o que você precisa." required></textarea><small data-erro="descricao"></small></div>
-        <div class="campo campo-inteiro aceite"><input id="privacidadeAceita" name="privacidadeAceita" type="checkbox" required /><label for="privacidadeAceita">Li o <a href="#privacidade">aviso de privacidade</a> e autorizo o uso dos dados para este atendimento.</label><small data-erro="privacidadeAceita"></small></div>
+        <fieldset class='campo campo-inteiro campo-tipo-atendimento'>
+          <legend>Como podemos ajudar? <span class='asterisco-obrigatorio' aria-hidden='true'>*</span></legend>
+          <div class='seletor-atendimento'>
+            <label><input type='radio' name='tipoAtendimento' value='pessoa-fisica' checked required /> Sou Pessoa Física</label>
+            <label><input type='radio' name='tipoAtendimento' value='empresa-existente' /> Já tenho uma Empresa</label>
+            <label><input type='radio' name='tipoAtendimento' value='abrir-empresa' /> Quero Abrir uma Empresa</label>
+          </div>
+        </fieldset>
+
+        <div class='campo campo-inteiro'><label for='nome'><span id='rotulo-nome'>Nome</span> <span class='asterisco-obrigatorio' aria-hidden='true'>*</span></label><small data-erro='nome'></small><input id='nome' name='nome' type='text' autocomplete='name' maxlength='120' required /></div>
+        <div class='campo'><label for='email'>E-mail <span class='rotulo-opcional'>(opcional)</span></label><small data-erro='email'></small><input id='email' name='email' type='email' autocomplete='email' maxlength='160' /></div>
+        <div class='campo'><label for='telefone'>Telefone/WhatsApp <span class='asterisco-obrigatorio' aria-hidden='true'>*</span></label><small data-erro='telefone'></small><input id='telefone' name='telefone' type='tel' inputmode='tel' autocomplete='tel' maxlength='16' placeholder='(11) 99999-9999' required /></div>
+
+        <div class='campo campo-inteiro' data-grupo-atendimento='pessoa-fisica'><label for='servicoDesejado'>Serviço desejado <span class='asterisco-obrigatorio' aria-hidden='true'>*</span></label><small data-erro='servicoDesejado'></small><select id='servicoDesejado' name='servicoDesejado' required><option value=''>Selecione</option><optgroup label='Serviços'><option value='abertura'>Abertura de empresa</option><option value='consultoria-financeira'>Consultoria financeira</option><option value='contabilidade-mensal'>Contabilidade mensal</option><option value='bpo-financeiro'>BPO financeiro</option><option value='folha-pagamento'>Folha de pagamento</option><option value='consultoria-tributaria'>Consultoria tributária</option></optgroup><optgroup label='Conteúdo e Ajuda'><option value='emissao-nf'>Emissão de nota fiscal</option><option value='reducao-impostos'>Redução de impostos</option><option value='mei'>MEI</option><option value='simples-nacional'>Simples Nacional</option><option value='lucro-presumido'>Lucro Presumido</option><option value='lucro-real'>Lucro Real</option></optgroup></select></div>
+
+        <div class='campo campo-inteiro' data-grupo-atendimento='empresa-existente' hidden><label for='empresa'>Empresa <span class='asterisco-obrigatorio' aria-hidden='true'>*</span></label><small data-erro='empresa'></small><input id='empresa' name='empresa' type='text' autocomplete='organization' maxlength='150' disabled /></div>
+        <div class='campo' data-grupo-atendimento='empresa-existente' hidden><label for='cnpj'>CNPJ <span class='rotulo-opcional'>(opcional)</span></label><small data-erro='cnpj'></small><input id='cnpj' name='cnpj' type='text' inputmode='text' maxlength='18' disabled /></div>
+        <div class='campo' data-grupo-atendimento='empresa-existente' hidden><label for='quantidadeFuncionarios'>Quantidade de funcionários <span class='rotulo-opcional'>(opcional)</span></label><small data-erro='quantidadeFuncionarios'></small><input id='quantidadeFuncionarios' name='quantidadeFuncionarios' type='number' inputmode='numeric' min='0' max='99999' disabled /></div>
+
+        <div class='campo' data-grupo-atendimento='abrir-empresa' hidden><label for='cidadeEstado'>Cidade/UF <span class='asterisco-obrigatorio' aria-hidden='true'>*</span></label><small data-erro='cidadeEstado'></small><input id='cidadeEstado' name='cidadeEstado' type='text' maxlength='105' placeholder='São Paulo/SP' disabled /></div>
+        <div class='campo' data-grupo-atendimento='abrir-empresa' hidden><label for='atividadeEmpresa'>Atividade da empresa <span class='asterisco-obrigatorio' aria-hidden='true'>*</span></label><small data-erro='atividadeEmpresa'></small><input id='atividadeEmpresa' name='atividadeEmpresa' type='text' maxlength='160' disabled /></div>
+        <div class='campo campo-inteiro' data-grupo-atendimento='abrir-empresa' hidden><label for='quantidadeSocios'>Quantos sócios terá? <span class='rotulo-opcional'>(opcional)</span></label><small data-erro='quantidadeSocios'></small><input id='quantidadeSocios' name='quantidadeSocios' type='number' inputmode='numeric' min='1' max='999' disabled /></div>
+
+        <div class='campo campo-inteiro'><label class='rotulo-com-contador' for='mensagem'><span>Mensagem <span class='rotulo-opcional'>(opcional)</span></span><span id='contador-mensagem'>0/500</span></label><small data-erro='mensagem'></small><textarea id='mensagem' name='mensagem' rows='5' maxlength='500' placeholder='Conte brevemente o que você precisa.'></textarea></div>
+        <div class='campo campo-inteiro aceite'><input id='privacidadeAceita' name='privacidadeAceita' type='checkbox' required /><label for='privacidadeAceita'>Li o <a href='#privacidade'>aviso de privacidade</a> e autorizo o uso dos dados para este atendimento. <span class='asterisco-obrigatorio' aria-hidden='true'>*</span></label><small data-erro='privacidadeAceita'></small></div>
         <p class="estado-formulario" id="estado-formulario" role="status" aria-live="polite"></p>
         <p class="pendencias-formulario campo-inteiro" id="pendencias-formulario" role="status" aria-live="polite"></p>
         <div class="acoes-formulario campo-inteiro">

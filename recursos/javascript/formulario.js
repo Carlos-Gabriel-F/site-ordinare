@@ -1,23 +1,21 @@
 const modalContato = document.querySelector('#modal-contato');
 const formulario = document.querySelector('#formulario-contato');
-const avisoEndereco = document.querySelector('#aviso-endereco');
-const camposEndereco = [...formulario.querySelectorAll('[data-endereco]')];
-const contadorDescricao = document.querySelector('#contador-descricao');
-const botaoEnviar = formulario.querySelector('[type="submit"]');
+const contadorMensagem = document.querySelector('#contador-mensagem');
+const botaoEnviar = formulario.querySelector('[type=submit]');
 const avisoPendencias = document.querySelector('#pendencias-formulario');
-const numeroWhatsappEmpresa = '5511932161365';
+const numeroWhatsappEmpresa = somenteNumeros(document.body.dataset.telefoneOrdinare);
 const chaveUltimaAberturaWhatsapp = 'ordinareUltimaAberturaWhatsapp';
 const intervaloAberturaWhatsapp = 60 * 1000;
 const camposInteragidos = new Set();
-let formularioInteragido = false;
-let numeroConsultaCep = 0;
-const categoriasValidas = [...document.querySelector('#categoria').options]
+const tiposAtendimentoValidos = new Set(['pessoa-fisica', 'empresa-existente', 'abrir-empresa']);
+const servicosValidos = [...formulario.elements.servicoDesejado.options]
   .map((opcao) => opcao.value)
   .filter(Boolean);
+let formularioInteragido = false;
 
 function informarErro(campo, mensagem = '') {
   const elemento = formulario.elements[campo];
-  const aviso = formulario.querySelector(`[data-erro="${campo}"]`);
+  const aviso = formulario.querySelector(`[data-erro=${campo}]`);
   if (elemento?.setAttribute) {
     mensagem ? elemento.setAttribute('aria-invalid', 'true') : elemento.removeAttribute('aria-invalid');
   }
@@ -30,144 +28,124 @@ function alterarEstadoFormulario(mensagem = '', tipo = '') {
   estado.className = `estado-formulario ${tipo}`.trim();
 }
 
-function atualizarTipoPessoa() {
-  const pessoaJuridica = formulario.elements.tipoPessoa.value === 'PJ';
-  const campoNascimento = document.querySelector('#campo-nascimento');
-  const documento = formulario.elements.documento;
+function obterTipoAtendimento() {
+  const tipoAtendimento = formulario.elements.tipoAtendimento.value;
+  return tiposAtendimentoValidos.has(tipoAtendimento) ? tipoAtendimento : '';
+}
 
-  document.querySelector('#rotulo-documento').textContent = pessoaJuridica ? 'CNPJ' : 'CPF';
-  campoNascimento.hidden = pessoaJuridica;
-  formulario.elements.dataNascimento.required = !pessoaJuridica;
-  documento.inputMode = pessoaJuridica ? 'text' : 'numeric';
-  documento.value = '';
-  if (pessoaJuridica) formulario.elements.dataNascimento.value = '';
-  camposInteragidos.delete('documento');
-  camposInteragidos.delete('dataNascimento');
-  informarErro('documento');
-  informarErro('dataNascimento');
+function atualizarTipoAtendimento() {
+  const tipoAtendimento = obterTipoAtendimento();
+  document.querySelector('#rotulo-nome').textContent = tipoAtendimento === 'empresa-existente'
+    ? 'Nome do responsável'
+    : 'Nome';
+
+  formulario.querySelectorAll('[data-grupo-atendimento]').forEach((grupo) => {
+    const ativo = grupo.dataset.grupoAtendimento === tipoAtendimento;
+    grupo.hidden = !ativo;
+    grupo.querySelectorAll('input, select, textarea').forEach((campo) => {
+      campo.disabled = !ativo;
+      if (!ativo) informarErro(campo.name);
+    });
+  });
+
+  formulario.elements.servicoDesejado.required = tipoAtendimento === 'pessoa-fisica';
+  formulario.elements.empresa.required = tipoAtendimento === 'empresa-existente';
+  formulario.elements.cidadeEstado.required = tipoAtendimento === 'abrir-empresa';
+  formulario.elements.atividadeEmpresa.required = tipoAtendimento === 'abrir-empresa';
   atualizarEstadoBotaoEnviar();
 }
 
-function prepararEnderecoAutomatico() {
-  avisoEndereco.hidden = true;
-  camposEndereco.forEach((campo) => {
-    campo.readOnly = true;
-    campo.removeAttribute('aria-invalid');
-  });
-}
-
-function permitirEnderecoManual(mensagem) {
-  avisoEndereco.textContent = mensagem;
-  avisoEndereco.hidden = false;
-  camposEndereco.forEach((campo) => {
-    campo.readOnly = false;
-    if (!campo.value.trim()) campo.setAttribute('aria-invalid', 'true');
-  });
-  camposEndereco.find((campo) => !campo.value.trim())?.focus();
-}
-
 function limparFormulario(focarPrimeiroCampo = false) {
-  numeroConsultaCep += 1;
   formularioInteragido = false;
   camposInteragidos.clear();
   formulario.reset();
   formulario.querySelectorAll('[data-erro]').forEach((aviso) => (aviso.textContent = ''));
-  formulario.querySelectorAll('[aria-invalid="true"]').forEach((campo) => campo.removeAttribute('aria-invalid'));
-  formulario.querySelector('[data-aviso-cep]').textContent = 'Informe o CEP para localizar o endereço.';
-  contadorDescricao.textContent = '0/500';
+  formulario.querySelectorAll('[aria-invalid=true]').forEach((campo) => campo.removeAttribute('aria-invalid'));
+  contadorMensagem.textContent = '0/500';
   avisoPendencias.textContent = '';
   avisoPendencias.className = 'pendencias-formulario campo-inteiro';
   alterarEstadoFormulario();
-  prepararEnderecoAutomatico();
-  atualizarTipoPessoa();
-  atualizarEstadoBotaoEnviar();
+  atualizarTipoAtendimento();
   if (focarPrimeiroCampo) formulario.elements.nome.focus();
 }
 
-async function consultarCep() {
-  const cep = somenteNumeros(formulario.elements.cep.value).slice(0, 8);
-  const aviso = formulario.querySelector('[data-aviso-cep]');
-  const consultaAtual = ++numeroConsultaCep;
-  formulario.elements.cep.value = cep.replace(/^(\d{5})(\d)/, '$1-$2');
-  camposEndereco.forEach((campo) => (campo.value = ''));
-  prepararEnderecoAutomatico();
-  informarErro('cep');
+function validarEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+}
 
-  if (cep.length !== 8) {
-    aviso.textContent = 'Informe o CEP para localizar o endereço.';
-    return;
-  }
+function validarQuantidadeOpcional(valor, minimo, maximo) {
+  if (!valor) return true;
+  const quantidade = Number(valor);
+  return /^\d+$/.test(valor) && quantidade >= minimo && quantidade <= maximo;
+}
 
-  aviso.textContent = 'Consultando CEP…';
-  const controle = new AbortController();
-  const limite = setTimeout(() => controle.abort(), 5000);
-
-  try {
-    const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { signal: controle.signal });
-    const endereco = await resposta.json();
-    if (!resposta.ok || endereco.erro) throw new Error('CEP não encontrado.');
-    if (consultaAtual !== numeroConsultaCep) return;
-    formulario.elements.rua.value = endereco.logradouro || '';
-    formulario.elements.cidade.value = endereco.localidade;
-    formulario.elements.estado.value = endereco.uf;
-    aviso.textContent = 'Endereço localizado automaticamente.';
-    if (camposEndereco.some((campo) => !campo.value.trim())) {
-      permitirEnderecoManual('O endereço foi encontrado parcialmente. Complete os campos destacados.');
-    }
-  } catch (erro) {
-    if (consultaAtual !== numeroConsultaCep) return;
-    aviso.textContent = 'Preenchimento manual liberado.';
-    permitirEnderecoManual(
-      erro.name === 'AbortError'
-        ? 'A consulta demorou demais. Preencha o endereço manualmente.'
-        : 'Não foi possível encontrar o endereço. Preencha os campos abaixo.',
-    );
-  } finally {
-    clearTimeout(limite);
-    atualizarEstadoBotaoEnviar();
-  }
+function validarCidadeEstado(valor) {
+  return /^.{2,}\s*[-/]\s*[A-Za-z]{2}$/.test(valor);
 }
 
 function validarFormulario() {
-  const pessoaJuridica = formulario.elements.tipoPessoa.value === 'PJ';
-  const dados = new FormData(formulario);
-  const telefone = normalizarTelefone(dados.get('telefone'));
+  const dadosFormulario = new FormData(formulario);
+  const tipoAtendimento = obterTipoAtendimento();
+  const nome = String(dadosFormulario.get('nome') || '').trim().replace(/\s+/g, ' ');
+  const email = String(dadosFormulario.get('email') || '').trim().toLowerCase();
+  const telefone = normalizarTelefone(dadosFormulario.get('telefone'));
+  const mensagem = String(dadosFormulario.get('mensagem') || '').trim();
+  const empresa = String(dadosFormulario.get('empresa') || '').trim().replace(/\s+/g, ' ');
+  const cnpjInformado = String(dadosFormulario.get('cnpj') || '').trim();
+  const quantidadeFuncionarios = String(dadosFormulario.get('quantidadeFuncionarios') || '').trim();
+  const cidadeEstado = String(dadosFormulario.get('cidadeEstado') || '').trim();
+  const atividadeEmpresa = String(dadosFormulario.get('atividadeEmpresa') || '').trim();
+  const quantidadeSocios = String(dadosFormulario.get('quantidadeSocios') || '').trim();
   const erros = {};
 
-  if (String(dados.get('nome')).trim().length < 3) erros.nome = 'Informe seu nome completo.';
-  if (pessoaJuridica ? !validarCnpj(dados.get('documento')) : !validarCpf(dados.get('documento'))) {
-    erros.documento = `Informe um ${pessoaJuridica ? 'CNPJ' : 'CPF'} válido.`;
+  if (!tipoAtendimento) erros.tipoAtendimento = 'Escolha como podemos ajudar.';
+  if (nome.length < 3) erros.nome = tipoAtendimento === 'empresa-existente'
+    ? 'Informe o nome do responsável.'
+    : 'Informe seu nome.';
+  if (email && !validarEmail(email)) erros.email = 'Informe um e-mail válido ou deixe o campo vazio.';
+  if (!telefone) erros.telefone = 'Informe um telefone ou WhatsApp brasileiro válido.';
+
+  if (tipoAtendimento === 'pessoa-fisica' && !servicosValidos.includes(dadosFormulario.get('servicoDesejado'))) {
+    erros.servicoDesejado = 'Selecione o serviço desejado.';
   }
-  if (!pessoaJuridica && !validarData(dados.get('dataNascimento'))) erros.dataNascimento = 'Informe uma data válida.';
-  if (!telefone) erros.telefone = 'Informe um telefone brasileiro válido.';
-  if (somenteNumeros(dados.get('cep')).length !== 8) erros.cep = 'Informe um CEP com oito dígitos.';
-  if (String(dados.get('rua')).trim().length < 3) erros.rua = 'Informe a rua.';
-  if (String(dados.get('cidade')).trim().length < 2) erros.cidade = 'Informe a cidade.';
-  if (!/^[A-Za-z]{2}$/.test(String(dados.get('estado')).trim())) erros.estado = 'Informe a UF com duas letras.';
-  if (!categoriasValidas.includes(dados.get('categoria'))) erros.categoria = 'Selecione uma categoria.';
-  if (!dados.get('regimeTributario')) erros.regimeTributario = 'Selecione o regime tributário.';
-  if (!String(dados.get('descricao')).trim()) erros.descricao = 'Descreva brevemente sua solicitação.';
-  if (String(dados.get('descricao')).trim().length > 500) erros.descricao = 'Use no máximo 500 caracteres.';
-  if (!dados.get('privacidadeAceita')) erros.privacidadeAceita = 'O aceite é obrigatório.';
-  if (dados.get('siteEmpresa')) erros.siteEmpresa = 'Envio não permitido.';
+
+  if (tipoAtendimento === 'empresa-existente') {
+    if (empresa.length < 2) erros.empresa = 'Informe o nome da empresa.';
+    if (cnpjInformado && !validarCnpj(cnpjInformado)) {
+      erros.cnpj = 'Informe um CNPJ válido ou deixe o campo vazio.';
+    }
+    if (!validarQuantidadeOpcional(quantidadeFuncionarios, 0, 99999)) {
+      erros.quantidadeFuncionarios = 'Informe uma quantidade válida ou deixe o campo vazio.';
+    }
+  }
+
+  if (tipoAtendimento === 'abrir-empresa') {
+    if (!validarCidadeEstado(cidadeEstado)) erros.cidadeEstado = 'Informe a cidade e a UF, por exemplo: São Paulo/SP.';
+    if (atividadeEmpresa.length < 3) erros.atividadeEmpresa = 'Informe a atividade da futura empresa.';
+    if (!validarQuantidadeOpcional(quantidadeSocios, 1, 999)) {
+      erros.quantidadeSocios = 'Informe ao menos um sócio ou deixe o campo vazio.';
+    }
+  }
+
+  if (mensagem.length > 500) erros.mensagem = 'Use no máximo 500 caracteres.';
+  if (!dadosFormulario.get('privacidadeAceita')) erros.privacidadeAceita = 'O aceite é obrigatório.';
+  if (dadosFormulario.get('siteEmpresa')) erros.siteEmpresa = 'Envio não permitido.';
 
   return {
     erros,
     dados: {
-      tipoPessoa: dados.get('tipoPessoa'),
-      nome: String(dados.get('nome')).trim().replace(/\s+/g, ' '),
-      documento: pessoaJuridica ? limparDocumento(dados.get('documento')) : somenteNumeros(dados.get('documento')),
-      dataNascimento: pessoaJuridica ? null : dados.get('dataNascimento'),
+      tipoAtendimento,
+      nome,
+      email,
       telefone,
-      cep: somenteNumeros(dados.get('cep')),
-      rua: String(dados.get('rua')).trim(),
-      cidade: String(dados.get('cidade')).trim(),
-      estado: String(dados.get('estado')).trim().toUpperCase(),
-      categoria: dados.get('categoria'),
-      regimeTributario: dados.get('regimeTributario'),
-      descricao: String(dados.get('descricao')).trim(),
-      privacidadeAceita: true,
-      siteEmpresa: String(dados.get('siteEmpresa') || ''),
+      servicoDesejado: dadosFormulario.get('servicoDesejado') || '',
+      empresa,
+      cnpj: cnpjInformado ? limparDocumento(cnpjInformado) : '',
+      quantidadeFuncionarios,
+      cidadeEstado,
+      atividadeEmpresa,
+      quantidadeSocios,
+      mensagem,
     },
   };
 }
@@ -213,39 +191,47 @@ function registrarCampoInteragido(evento) {
   atualizarEstadoBotaoEnviar();
 }
 
-function formatarDataMensagem(data) {
-  if (!data) return 'Não se aplica';
-  const [ano, mes, dia] = data.split('-');
-  return `${dia}/${mes}/${ano}`;
+function obterTextoSelecionado(campo) {
+  return campo.selectedOptions[0]?.textContent.trim() || 'Não informado';
 }
 
 function montarMensagemWhatsapp(dados) {
-  const categoria = formulario.elements.categoria.selectedOptions[0].textContent.trim();
-  const regimeTributario = formulario.elements.regimeTributario.selectedOptions[0].textContent.trim();
-  const tipoPessoa = dados.tipoPessoa === 'PJ' ? 'Pessoa jurídica' : 'Pessoa física';
-  const tipoDocumento = dados.tipoPessoa === 'PJ' ? 'CNPJ' : 'CPF';
-
-  return [
+  const tiposAtendimento = {
+    'pessoa-fisica': 'Sou Pessoa Física',
+    'empresa-existente': 'Já tenho uma Empresa',
+    'abrir-empresa': 'Quero Abrir uma Empresa',
+  };
+  const linhas = [
     'Olá, equipe Ordinare!',
     '',
-    'Gostaria de solicitar um atendimento contábil.',
-    '',
-    `*Nome:* ${dados.nome}`,
-    `*Tipo de pessoa:* ${tipoPessoa}`,
-    `*${tipoDocumento}:* ${formulario.elements.documento.value}`,
-    `*Data de nascimento:* ${formatarDataMensagem(dados.dataNascimento)}`,
-    `*Telefone:* ${formulario.elements.telefone.value}`,
-    `*CEP:* ${formulario.elements.cep.value}`,
-    `*Rua:* ${dados.rua}`,
-    `*Cidade/Estado:* ${dados.cidade}/${dados.estado}`,
-    `*Categoria:* ${categoria}`,
-    `*Regime tributário:* ${regimeTributario}`,
-    '',
-    '*Descrição da solicitação:*',
-    dados.descricao,
-    '',
-    '*Aviso de privacidade:* aceito.',
-  ].join('\n');
+    `*Como podemos ajudar:* ${tiposAtendimento[dados.tipoAtendimento]}`,
+    `*${dados.tipoAtendimento === 'empresa-existente' ? 'Nome do responsável' : 'Nome'}:* ${dados.nome}`,
+    `*E-mail:* ${dados.email || 'Não informado'}`,
+    `*Telefone/WhatsApp:* ${formulario.elements.telefone.value}`,
+  ];
+
+  if (dados.tipoAtendimento === 'pessoa-fisica') {
+    linhas.push(`*Serviço desejado:* ${obterTextoSelecionado(formulario.elements.servicoDesejado)}`);
+  }
+
+  if (dados.tipoAtendimento === 'empresa-existente') {
+    linhas.push(
+      `*Empresa:* ${dados.empresa}`,
+      `*CNPJ:* ${formulario.elements.cnpj.value || 'Não informado'}`,
+      `*Quantidade de funcionários:* ${dados.quantidadeFuncionarios || 'Não informada'}`,
+    );
+  }
+
+  if (dados.tipoAtendimento === 'abrir-empresa') {
+    linhas.push(
+      `*Cidade/UF:* ${dados.cidadeEstado}`,
+      `*Atividade da empresa:* ${dados.atividadeEmpresa}`,
+      `*Quantidade de sócios:* ${dados.quantidadeSocios || 'Não informada'}`,
+    );
+  }
+
+  linhas.push('', '*Mensagem:*', dados.mensagem || 'Não informada.', '', '*Aviso de privacidade:* aceito.');
+  return linhas.join('\n');
 }
 
 function usarAplicativoWhatsapp() {
@@ -308,14 +294,14 @@ async function enviarFormularioViaApi(dados) {
 function enviarFormulario(evento) {
   evento.preventDefault();
   formulario.querySelectorAll('[data-erro]').forEach((aviso) => (aviso.textContent = ''));
-  formulario.querySelectorAll('[aria-invalid="true"]').forEach((campo) => campo.removeAttribute('aria-invalid'));
+  formulario.querySelectorAll('[aria-invalid=true]').forEach((campo) => campo.removeAttribute('aria-invalid'));
   alterarEstadoFormulario();
 
   const { erros, dados } = validarFormulario();
   if (Object.keys(erros).length) {
     Object.entries(erros).forEach(([campo, mensagem]) => informarErro(campo, mensagem));
     alterarEstadoFormulario('Revise os campos destacados.', 'erro');
-    formulario.querySelector('[aria-invalid="true"]')?.focus();
+    formulario.querySelector('[aria-invalid=true]')?.focus();
     return;
   }
 
@@ -336,9 +322,14 @@ function enviarFormulario(evento) {
   fecharModal();
 }
 
-function abrirModal(categoria = '') {
-  if (categoriasValidas.includes(categoria)) formulario.elements.categoria.value = categoria;
-  atualizarEstadoBotaoEnviar();
+function abrirModal(servico = '') {
+  if (servico === 'abertura') {
+    formulario.elements.tipoAtendimento.value = 'abrir-empresa';
+  } else if (servicosValidos.includes(servico)) {
+    formulario.elements.tipoAtendimento.value = 'pessoa-fisica';
+    formulario.elements.servicoDesejado.value = servico;
+  }
+  atualizarTipoAtendimento();
   modalContato.showModal();
   document.body.classList.add('modal-aberto');
   formulario.elements.nome.focus();
@@ -366,33 +357,21 @@ function inicializarFormulario() {
   formulario.addEventListener('change', registrarCampoInteragido);
   formulario.addEventListener('focusout', registrarCampoInteragido);
   document.querySelector('#limpar-formulario').addEventListener('click', () => limparFormulario(true));
-  formulario.elements.documento.addEventListener('input', (evento) => {
-    evento.target.value = formulario.elements.tipoPessoa.value === 'PJ'
-      ? formatarCnpj(evento.target.value)
-      : formatarCpf(evento.target.value);
-  });
   formulario.elements.telefone.addEventListener('input', (evento) => {
     evento.target.value = formatarTelefone(evento.target.value);
   });
-  formulario.elements.cep.addEventListener('input', consultarCep);
-  formulario.elements.descricao.addEventListener('input', (evento) => {
-    contadorDescricao.textContent = `${evento.target.value.length}/500`;
+  formulario.elements.cnpj.addEventListener('input', (evento) => {
+    evento.target.value = formatarCnpj(evento.target.value);
   });
-  camposEndereco.forEach((campo) => {
-    campo.addEventListener('input', () => {
-      if (campo === formulario.elements.estado) {
-        campo.value = campo.value.toUpperCase().replace(/[^A-Z]/g, '');
-      }
-      if (campo.value.trim()) informarErro(campo.name);
-    });
+  formulario.elements.mensagem.addEventListener('input', (evento) => {
+    contadorMensagem.textContent = `${evento.target.value.length}/500`;
   });
-  formulario.querySelectorAll('[name="tipoPessoa"]').forEach((campo) => {
-    campo.addEventListener('change', atualizarTipoPessoa);
+  formulario.querySelectorAll('[name=tipoAtendimento]').forEach((campo) => {
+    campo.addEventListener('change', atualizarTipoAtendimento);
   });
   window.addEventListener('pageshow', (evento) => {
     if (evento.persisted) limparFormulario();
   });
 
-  formulario.elements.dataNascimento.max = new Date().toISOString().slice(0, 10);
   limparFormulario();
 }

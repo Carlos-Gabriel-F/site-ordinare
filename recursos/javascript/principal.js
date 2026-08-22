@@ -1,6 +1,22 @@
 const menuMobile = document.querySelector('#menu-mobile');
 const botaoMenuMobile = document.querySelector('.botao-menu-mobile');
 
+function aplicarConfiguracaoContatos() {
+  const email = document.body.dataset.emailOrdinare;
+  const telefone = somenteNumeros(document.body.dataset.telefoneOrdinare);
+  const telefoneComPais = telefone.startsWith('55') ? telefone : `55${telefone}`;
+  const telefoneExibicao = formatarTelefone(telefoneComPais);
+
+  document.querySelectorAll('[data-contato-email]').forEach((elemento) => {
+    elemento.textContent = email;
+    if (elemento.tagName === 'A') elemento.href = `mailto:${email}`;
+  });
+  document.querySelectorAll('[data-contato-telefone]').forEach((elemento) => {
+    elemento.textContent = telefoneExibicao;
+    if (elemento.tagName === 'A') elemento.href = `tel:+${telefoneComPais}`;
+  });
+}
+
 function fecharSubmenus() {
   document.querySelectorAll('.item-menu').forEach((item) => item.classList.remove('aberto'));
   document.querySelectorAll('.botao-menu').forEach((botao) => botao.setAttribute('aria-expanded', 'false'));
@@ -54,5 +70,6 @@ function inicializarNavegacao() {
 }
 
 document.querySelector('#ano-atual').textContent = new Date().getFullYear();
+aplicarConfiguracaoContatos();
 inicializarNavegacao();
 inicializarFormulario();

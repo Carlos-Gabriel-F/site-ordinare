@@ -22,26 +22,26 @@ Site institucional da Ordinare desenvolvido com HTML, CSS e JavaScript puro. O f
 └── referencias/
 ```
 
-O `principal.js` inicializa a navegação e o formulário. As regras do formulário, CEP e WhatsApp ficam em `formulario.js`; máscaras e validações reutilizáveis ficam em `validacoes.js`.
+O `principal.js` aplica os contatos centralizados no HTML e inicializa a navegação e o formulário. As regras do formulário e do WhatsApp ficam em `formulario.js`; máscaras e validações reutilizáveis ficam em `validacoes.js`.
 
 Os arquivos da pasta `api` estão temporariamente comentados e preservados para uma futura integração automática com usuário de serviço.
 
 ## WhatsApp
 
-O número usado no primeiro teste é `5511932161365` e está definido no `formulario.js`.
+O telefone e o e-mail ficam centralizados nos atributos `data-telefone-ordinare` e `data-email-ordinare`, no começo do `body` do `index.html`. O número usado no primeiro teste é `5511932161365`.
 
 - Computadores abrem o WhatsApp Web em uma nova aba.
 - Celulares e tablets abrem o endereço `wa.me`, permitindo que o sistema encaminhe ao aplicativo instalado.
 - A mensagem contém os campos preenchidos e ainda precisa ser enviada pelo próprio usuário.
 - Nenhum token ou credencial da Meta é necessário nessa abordagem.
 
-Os dados da mensagem são codificados no endereço do WhatsApp. A coleta de CPF/CNPJ, nascimento e endereço deve permanecer informada no aviso de privacidade.
+O formulário possui três fluxos: pessoa física, empresa existente e abertura de empresa. Somente os campos do fluxo selecionado são validados e incluídos na mensagem. Os dados são codificados no endereço do WhatsApp.
 
 ## Proteção inicial contra repetição
 
 Como não existe envio automático nem chamada à API da Meta, o site não consegue disparar mensagens sozinho. A proteção inicial inclui:
 
-- validação obrigatória de todos os campos;
+- validação dos campos obrigatórios e dos opcionais que forem preenchidos;
 - botão bloqueado enquanto o formulário estiver inválido;
 - campo invisível contra preenchimento automatizado simples;
 - intervalo local de sessenta segundos entre aberturas do WhatsApp;
@@ -66,7 +66,7 @@ O intervalo local é uma barreira de conveniência e pode ser contornado por que
 ## Antes da publicação
 
 - Substituir telefone, e-mail e CRC pelos dados oficiais.
-- Revisar a necessidade de CPF e nascimento e validar o aviso de privacidade com o responsável pela LGPD.
+- Validar o aviso de privacidade com o responsável pela LGPD.
 - Substituir o número de teste pelo WhatsApp definitivo.
 - Reavaliar a proteção no servidor caso a integração automática seja reativada.
 
